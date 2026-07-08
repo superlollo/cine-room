@@ -1,36 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CineRoom (movie_picker)
 
-## Getting Started
+Webapp per decidere insieme che film guardare: liste "da vedere" personali, stanze condivise via link, estrazione casuale con esclusioni per stanza.
 
-First, run the development server:
+## Piano di sviluppo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Il piano completo è in [`piano/`](piano/), diviso per giorni:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [`00-OVERVIEW.md`](piano/00-OVERVIEW.md) — architettura, stack, schema DB, design system. **Da leggere in ogni sessione.**
+- `01`→`07` — un file per giorno di sviluppo, con task e criteri di accettazione.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Come usarlo con Claude Code
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+In una nuova sessione, incolla:
 
-## Learn More
+> Leggi `piano/00-OVERVIEW.md` e `piano/01-giorno-1-setup.md`, poi implementa i task del giorno seguendo le decisioni dell'overview. Alla fine verifica i criteri di accettazione.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+E così via per i giorni successivi.
