@@ -102,29 +102,33 @@ create table room_exclusions (
 );
 ```
 
-**Regola d'oro:** confermare un film = `insert into room_exclusions` + `rooms.status = 'decided'`. La riga in `list_movies` **non si tocca mai** durante l'estrazione.
+**Regola d'oro:** confermare un film ("Lo guardiamo!") = `insert into room_exclusions` + `rooms.status = 'decided'`. La riga in `list_movies` **non si tocca mai** durante l'estrazione. **Solo la conferma brucia per sempre** il film nella stanza — "Ripesca" NON scrive in `room_exclusions` (vedi sotto).
 
 ### Estrazione casuale (RPC Postgres, server-side)
 
+`draw_movie` accetta un secondo parametro opzionale `p_temp_exclude`: i film scartati con "Ripesca" nel turno corrente, gestiti **solo lato client** (mai persistiti). Serve ad evitare di riproporre subito lo stesso film appena rifiutato, senza bruciarlo per sempre. Se un turno esaurisce le opzioni fresche, il client ritenta con `p_temp_exclude` vuoto (si ricomincia il ciclo tra gli scartati) prima di considerare il pool davvero esaurito.
+
 ```sql
-create or replace function draw_movie(p_room_id uuid)
+create or replace function draw_movie(p_room_id uuid, p_temp_exclude integer[] default '{}')
 returns integer language plpgsql security definer as $$
 declare v_movie integer;
 begin
   -- pool = unione (dedup) delle liste scelte dai membri, meno le esclusioni stanza
+  -- e meno gli scartati (non persistiti) di questo turno
   select lm.movie_id into v_movie
   from room_members rm
   join list_movies lm on lm.list_id = rm.selected_list_id
   where rm.room_id = p_room_id
     and rm.selected_list_id is not null
     and lm.movie_id not in (select movie_id from room_exclusions where room_id = p_room_id)
+    and lm.movie_id <> all(p_temp_exclude)
   group by lm.movie_id                        -- dedup: ogni film unico una volta
   order by random() limit 1;
 
   update rooms set current_movie_id = v_movie,
                    status = case when v_movie is null then status else 'drawing' end
   where id = p_room_id;
-  return v_movie;  -- null = pool esaurito in questa stanza
+  return v_movie;  -- null = nessuna opzione fresca in questo turno, o pool davvero esaurito
 end $$;
 ```
 

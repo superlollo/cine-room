@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { RoomStatus } from "@/lib/types";
+import type { Movie, RoomStatus } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { RoomShell } from "@/components/rooms/room-shell";
 import { RoomInvite } from "@/components/rooms/room-invite";
 import { JoinRoom } from "@/components/rooms/join-room";
-import { RoomLobby } from "@/components/rooms/room-lobby";
+import { RoomView } from "@/components/rooms/room-view";
 
 export default async function RoomPage({
   params,
@@ -137,7 +137,7 @@ export default async function RoomPage({
     poolCount = uniq.size;
     poolPosters = [...uniq.values()]
       .filter((p): p is string => !!p)
-      .slice(0, 6);
+      .slice(0, 30);
   }
 
   // Le liste dell'utente corrente (per il selettore), con conteggio film
@@ -166,10 +166,34 @@ export default async function RoomPage({
   const mySelectedListId =
     members.find((m) => m.userId === user.id)?.selectedList?.id ?? null;
 
+  // Film attualmente estratto (se presente)
+  let currentMovie: Movie | null = null;
+  if (room.current_movie_id) {
+    const { data: cm } = await supabase
+      .from("movies")
+      .select("*")
+      .eq("tmdb_id", room.current_movie_id)
+      .maybeSingle();
+    currentMovie = (cm as Movie | null) ?? null;
+  }
+
+  // Cronologia: film già estratti/bruciati in questa stanza
+  const { data: exclRows } = await supabase
+    .from("room_exclusions")
+    .select("excluded_at, movies(*)")
+    .eq("room_id", room.id)
+    .order("excluded_at", { ascending: false });
+  const history = (exclRows ?? [])
+    .map((r) => ({
+      movie: r.movies as unknown as Movie,
+      excludedAt: r.excluded_at as string,
+    }))
+    .filter((h) => !!h.movie);
+
   return (
     <ToastProvider>
       <RoomShell>
-        <RoomLobby
+        <RoomView
           room={{
             id: room.id,
             code: room.code,
@@ -182,6 +206,8 @@ export default async function RoomPage({
           pool={{ count: poolCount, posters: poolPosters }}
           myLists={myLists}
           mySelectedListId={mySelectedListId}
+          currentMovie={currentMovie}
+          history={history}
         />
       </RoomShell>
     </ToastProvider>

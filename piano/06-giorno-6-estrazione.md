@@ -13,7 +13,7 @@ L'estrazione del film con animazione teatrale, la conferma (che brucia il film s
 - [ ] Tutti i membri ricevono l'update via realtime (già cablato al Giorno 5) e vedono l'animazione + il risultato in sincrono.
 - [ ] Sotto il film estratto, due bottoni (solo host, gli altri li vedono disabilitati con label "L'host sta decidendo…"):
   - **"✓ Lo guardiamo!"** → insert in `room_exclusions (room_id, movie_id)` + update `rooms.status='decided'`. Il film resta mostrato come "Film della serata".
-  - **"↻ Ripesca"** → anche il film rifiutato va in `room_exclusions` (così non riesce subito) e si richiama `draw_movie`. *Decisione presa: il "ripesca" brucia il film nella stanza — è il comportamento richiesto ("non possa più uscire"). Documentarlo nella UI con un microcopy tipo "non uscirà più in questa stanza".*
+  - **"↻ Ripesca"** → il film rifiutato **NON** va in `room_exclusions` (non è bruciato per sempre): si richiama `draw_movie(room_id, p_temp_exclude)` passando lato client la lista dei film scartati in questo turno, così non ripropone subito lo stesso film. *Decisione rivista: solo la conferma ("Lo guardiamo!") brucia il film nella stanza; "Ripesca" lo scarta solo per il turno corrente e può ricomparire in un'estrazione successiva. Documentarlo nella UI con un microcopy tipo "scartato per questo turno, potrà ricomparire in futuro".*
 - [ ] `draw_movie` ritorna `null` → pool esaurito in questa stanza: schermata dedicata "Avete visto tutto! 🏆" con opzioni: i membri cambiano/aggiungono la propria lista (torna alla selezione) oppure azzerare le esclusioni della stanza (bottone "Ricomincia da capo" → delete di `room_exclusions` della stanza, solo host, con conferma).
 - [ ] Dopo la conferma (`status='decided'`), l'host può comunque fare "Nuova estrazione" (riporta a `open`/`drawing`) per la prossima serata nella stessa stanza.
 
@@ -33,5 +33,5 @@ L'estrazione del film con animazione teatrale, la conferma (che brucia il film s
 ## Criteri di accettazione
 - Due account in due browser nella stessa stanza: l'host estrae, ENTRAMBI vedono la slot machine e lo stesso film, in sincrono.
 - Conferma → il film appare nella cronologia della stanza e non esce più lì; nella seconda stanza con la stessa lista esce ancora. `list_movies` invariata (check su Supabase).
-- Ripescaggio ripetuto fino a esaurimento → schermata "Avete visto tutto" e "Ricomincia da capo" resetta davvero.
+- Ripescaggio ripetuto **non esaurisce mai il pool da solo** (non brucia, solo evita ripetizioni immediate: dopo aver girato tra tutte le opzioni fresche del turno, ricomincia a proporle); l'esaurimento vero scatta solo quando restano solo film già **confermati** (in `room_exclusions`) in stanze precedenti/turni precedenti — schermata "Avete visto tutto" e "Ricomincia da capo" resetta davvero.
 - Spam-click su "Estrai" non produce estrazioni multiple sovrapposte.

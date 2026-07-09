@@ -27,7 +27,7 @@ Portare tutta l'app al livello "premium e accattivante" richiesto (riferimento F
 - [ ] Rate limiting leggero sul proxy TMDB (per proteggere la quota della API key) — anche solo cache aggressiva + guard sulle query < 2 caratteri.
 - [ ] Meta/OG: title, description, og:image (importante: il link stanza verrà condiviso su WhatsApp — curare l'anteprima con nome stanza generico e branding).
 
-### 4. Deploy su Vercel
+### 4. Deploy su Vercel (saltando i punti che sono già stati fatti)
 - [ ] Repo GitHub (se non già fatto: `git init`, commit, push).
 - [ ] Import su Vercel, configurare le 4 env var (production). `SUPABASE_SERVICE_ROLE_KEY` e `TMDB_API_KEY` NON devono essere `NEXT_PUBLIC_`.
 - [ ] Su Supabase: aggiungere il dominio Vercel agli URL consentiti per l'auth (Site URL + redirect URLs).
