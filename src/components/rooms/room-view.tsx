@@ -42,7 +42,8 @@ export function RoomView({
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"confirm" | "redraw" | "newdraw" | "reset" | null>(null);
+  const busy = busyAction !== null;
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -99,7 +100,7 @@ export function RoomView({
 
   async function confirmMovie() {
     if (!currentMovie) return;
-    setBusy(true);
+    setBusyAction("confirm");
     await supabase
       .from("room_exclusions")
       .insert({ room_id: room.id, movie_id: currentMovie.tmdb_id });
@@ -107,8 +108,10 @@ export function RoomView({
       .from("rooms")
       .update({ status: "decided" })
       .eq("id", room.id);
-    setBusy(false);
-    if (error) return toast.error("Errore nella conferma.");
+    if (error) {
+      setBusyAction(null);
+      return toast.error("Errore nella conferma.");
+    }
     router.refresh();
   }
 
@@ -118,7 +121,7 @@ export function RoomView({
   // mostrare "pool esaurito" a torto.
   async function redrawMovie() {
     if (!currentMovie) return;
-    setBusy(true);
+    setBusyAction("redraw");
     const roundSkip = [...skippedThisRound, currentMovie.tmdb_id];
     let { data: movieId, error } = await supabase.rpc("draw_movie", {
       p_room_id: room.id,
@@ -134,7 +137,7 @@ export function RoomView({
       setSkippedThisRound(roundSkip);
     }
     if (error) {
-      setBusy(false);
+      setBusyAction(null);
       return toast.error("Errore nel ripescaggio.");
     }
     if (movieId == null) {
@@ -143,30 +146,27 @@ export function RoomView({
         .update({ status: "drawing", current_movie_id: null })
         .eq("id", room.id);
     }
-    setBusy(false);
     router.refresh();
   }
 
   async function newDraw() {
-    setBusy(true);
+    setBusyAction("newdraw");
     setSkippedThisRound([]);
     await supabase
       .from("rooms")
       .update({ status: "open", current_movie_id: null })
       .eq("id", room.id);
-    setBusy(false);
     router.refresh();
   }
 
   async function resetExclusions() {
-    setBusy(true);
+    setBusyAction("reset");
     setSkippedThisRound([]);
     await supabase.from("room_exclusions").delete().eq("room_id", room.id);
     await supabase
       .from("rooms")
       .update({ status: "open", current_movie_id: null })
       .eq("id", room.id);
-    setBusy(false);
     setMenuOpen(false);
     toast.success("Film già visti azzerati.");
     router.refresh();
@@ -229,7 +229,8 @@ export function RoomView({
                         disabled={busy}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-white/5 disabled:opacity-50"
                       >
-                        <RotateCcw className="size-4" /> Azzera film già visti
+                        {busyAction === "reset" ? <Spinner className="size-4" /> : <RotateCcw className="size-4" />}
+                        {busyAction === "reset" ? "Azzerando…" : "Azzera film già visti"}
                       </button>
                     )}
                     <button
@@ -271,7 +272,7 @@ export function RoomView({
           movie={currentMovie}
           reelPosters={pool.posters}
           isHost={isHost}
-          busy={busy}
+          busyAction={busyAction}
           onConfirm={confirmMovie}
           onRedraw={redrawMovie}
         />
@@ -315,8 +316,8 @@ export function RoomView({
           <MovieResultCard movie={currentMovie} label="🍿 Film della serata" />
           {isHost && (
             <Button onClick={newDraw} disabled={busy} variant="ghost">
-              {busy ? <Spinner /> : <Sparkles className="size-5" />}
-              Nuova estrazione
+              {busyAction === "newdraw" ? <Spinner /> : <Sparkles className="size-5" />}
+              {busyAction === "newdraw" ? "Preparando…" : "Nuova estrazione"}
             </Button>
           )}
         </motion.div>

@@ -15,14 +15,14 @@ export function DrawReveal({
   movie,
   reelPosters,
   isHost,
-  busy,
+  busyAction,
   onConfirm,
   onRedraw,
 }: {
   movie: Movie;
   reelPosters: string[];
   isHost: boolean;
-  busy: boolean;
+  busyAction: "confirm" | "redraw" | "newdraw" | "reset" | null;
   onConfirm: () => void;
   onRedraw: () => void;
 }) {
@@ -125,21 +125,21 @@ export function DrawReveal({
             <Button
               size="lg"
               onClick={onConfirm}
-              disabled={busy}
+              disabled={busyAction !== null}
               className="flex-1"
             >
-              {busy ? <Spinner /> : <Check className="size-5" />}
-              Lo guardiamo!
+              {busyAction === "confirm" ? <Spinner /> : <Check className="size-5" />}
+              {busyAction === "confirm" ? "Confermo…" : "Lo guardiamo!"}
             </Button>
             <Button
               size="lg"
               variant="ghost"
               onClick={onRedraw}
-              disabled={busy}
+              disabled={busyAction !== null}
               className="flex-1"
             >
-              <RotateCcw className="size-5" />
-              Ripesca
+              {busyAction === "redraw" ? <Spinner /> : <RotateCcw className="size-5" />}
+              {busyAction === "redraw" ? "Ripesco…" : "Ripesca"}
             </Button>
           </div>
           <p className="text-center text-xs text-muted">
