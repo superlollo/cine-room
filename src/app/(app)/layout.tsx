@@ -29,7 +29,7 @@ export default async function AppLayout({
           username={profile?.username ?? null}
           avatar={profile?.avatar_url ?? null}
         />
-        <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:pb-10">
+        <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-6">
           {children}
         </main>
       </div>

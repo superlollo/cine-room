@@ -40,6 +40,9 @@ yarn-error.log*
 # supabase (migrations tenute solo in locale, non pubblicate su GitHub)
 /supabase
 
+# piano di sviluppo (note interne, non per il repo pubblico)
+/piano
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

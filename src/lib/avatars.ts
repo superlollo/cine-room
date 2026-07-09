@@ -1,5 +1,5 @@
 // Avatar predefiniti (emoji): scelta rapida per il Giorno 2.
-// L'upload su Supabase Storage si può aggiungere più avanti (Giorno 7).
+// L'upload su Supabase Storage (bucket `avatars`) è stato aggiunto al Giorno 8.
 export const PRESET_AVATARS = [
   "🍿",
   "🎬",

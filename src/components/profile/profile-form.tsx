@@ -1,15 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, LogOut } from "lucide-react";
+import { Check, ImageUp, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Button, Card, Input, Spinner } from "@/components/ui";
+import { Avatar, Button, Card, Input, Spinner, useToast } from "@/components/ui";
 import { Field } from "@/components/auth/field";
 import { PRESET_AVATARS } from "@/lib/avatars";
 import { cn } from "@/lib/utils";
 
 const USERNAME_RE = /^[a-zA-Z0-9]{3,20}$/;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const AVATAR_SIZE = 512;
+
+// Resize+compressione client-side: max 512x512, output webp qualità ~0.85.
+async function resizeToWebp(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, AVATAR_SIZE / Math.max(bitmap.width, bitmap.height));
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas non disponibile");
+  ctx.drawImage(bitmap, 0, 0, width, height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Conversione fallita"))),
+      "image/webp",
+      0.85,
+    );
+  });
+}
 
 export function ProfileForm({
   userId,
@@ -24,6 +49,8 @@ export function ProfileForm({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState(initialUsername);
   const [avatar, setAvatar] = useState<string | null>(initialAvatar);
@@ -32,8 +59,45 @@ export function ProfileForm({
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const dirty = username !== initialUsername || avatar !== initialAvatar;
+
+  async function onPhotoSelected(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Il file scelto non è un'immagine.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error("Immagine troppo grande (max 10MB).");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const blob = await resizeToWebp(file);
+      const path = `${userId}/avatar.webp`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, blob, { upsert: true, contentType: "image/webp" });
+      if (uploadError) {
+        toast.error("Caricamento non riuscito. Riprova.");
+        return;
+      }
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatar(`${data.publicUrl}?v=${Date.now()}`);
+      setSaved(false);
+    } catch {
+      toast.error("Caricamento non riuscito. Riprova.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function onSave(ev: React.FormEvent) {
     ev.preventDefault();
@@ -117,9 +181,31 @@ export function ProfileForm({
         </Field>
 
         <div>
-          <span className="mb-2 block text-sm font-medium text-foreground/90">
-            Avatar
-          </span>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="block text-sm font-medium text-foreground/90">
+              Avatar
+            </span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="flex items-center gap-1.5 text-sm text-accent-gold transition hover:text-accent-gold/80 disabled:opacity-60"
+            >
+              {uploadingPhoto ? (
+                <Spinner />
+              ) : (
+                <ImageUp className="size-4" />
+              )}
+              {uploadingPhoto ? "Caricamento…" : "Carica una foto"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={onPhotoSelected}
+              className="hidden"
+            />
+          </div>
           <div className="grid grid-cols-8 gap-2">
             {PRESET_AVATARS.map((emoji) => (
               <button
