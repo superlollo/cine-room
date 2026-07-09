@@ -8,8 +8,8 @@ Quando si è in gruppo (amici/famiglia) non si sa mai cosa guardare e si perdono
 
 1. Ogni utente si crea una o più **liste** di film che vuole vedere (con ricerca + autocomplete su un catalogo enorme).
 2. Un utente crea una **stanza** (sala cinema) e condivide un link: gli altri entrano.
-3. Nella stanza si seleziona **una sola lista** (di uno qualsiasi dei membri) e l'app **estrae a caso** un film da quella lista.
-4. Se il film viene **confermato**, viene "bruciato" **solo in quella stanza** (non potrà più uscire lì), ma **NON viene rimosso dalla lista**: se la stessa lista è usata in un'altra stanza, lì il film può ancora uscire.
+3. Nella stanza **ogni partecipante sceglie una sua lista** (una a testa, tra le proprie). L'app **estrae a caso** un film dall'**unione** delle liste scelte dai membri (film unici, dedup). Basta che almeno un membro abbia scelto una lista per poter estrarre.
+4. Se il film viene **confermato**, viene "bruciato" **solo in quella stanza** (non potrà più uscire lì), ma **NON viene rimosso da nessuna lista**: se una di quelle liste è usata in un'altra stanza, lì il film può ancora uscire.
 
 ## 2. Stack tecnico (vincolante)
 
@@ -78,15 +78,17 @@ create table rooms (
   code text unique not null,                -- codice corto per il link, es. "XK4P9Q"
   name text not null,
   host_id uuid not null references profiles(id) on delete cascade,
-  selected_list_id uuid references lists(id) on delete set null,  -- UNA sola lista per stanza
   current_movie_id integer references movies(tmdb_id),            -- estrazione in corso, non ancora confermata
   status text not null default 'open' check (status in ('open','drawing','decided')),
   created_at timestamptz default now()
 );
 
+-- Ogni membro sceglie UNA sua lista (selected_list_id): il pool di estrazione
+-- è l'unione (dedup) delle liste scelte dai membri della stanza.
 create table room_members (
   room_id uuid references rooms(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
+  selected_list_id uuid references lists(id) on delete set null,  -- la lista scelta da questo membro
   joined_at timestamptz default now(),
   primary key (room_id, user_id)
 );
@@ -109,17 +111,20 @@ create or replace function draw_movie(p_room_id uuid)
 returns integer language plpgsql security definer as $$
 declare v_movie integer;
 begin
+  -- pool = unione (dedup) delle liste scelte dai membri, meno le esclusioni stanza
   select lm.movie_id into v_movie
-  from rooms r
-  join list_movies lm on lm.list_id = r.selected_list_id
-  where r.id = p_room_id
+  from room_members rm
+  join list_movies lm on lm.list_id = rm.selected_list_id
+  where rm.room_id = p_room_id
+    and rm.selected_list_id is not null
     and lm.movie_id not in (select movie_id from room_exclusions where room_id = p_room_id)
+  group by lm.movie_id                        -- dedup: ogni film unico una volta
   order by random() limit 1;
 
   update rooms set current_movie_id = v_movie,
                    status = case when v_movie is null then status else 'drawing' end
   where id = p_room_id;
-  return v_movie;  -- null = lista esaurita in questa stanza
+  return v_movie;  -- null = pool esaurito in questa stanza
 end $$;
 ```
 
@@ -127,14 +132,14 @@ end $$;
 
 - `profiles`: lettura pubblica (per mostrare i membri), update solo proprietario.
 - `movies`: lettura per tutti gli autenticati; insert via route handler server-side.
-- `lists` / `list_movies`: CRUD solo per `owner_id = auth.uid()`; **SELECT anche per i membri di stanze in cui la lista è selezionata** (serve per l'estrazione e per mostrare la lista in stanza).
+- `lists` / `list_movies`: CRUD solo per `owner_id = auth.uid()`; **SELECT anche per i membri di una stanza se la lista è stata scelta da un membro qualsiasi di quella stanza** (`can_view_list`: serve a mostrare il pool/animazione a tutti). Ognuno però sceglie solo tra le **proprie** liste.
 - `rooms`: SELECT per i membri **e** lookup per `code` (per la pagina di join); update solo host.
-- `room_members`: insert self-service (join), select per membri della stessa stanza.
+- `room_members`: insert self-service (join), select per membri della stessa stanza, **update della propria riga** per settare `selected_list_id` (solo a una lista propria).
 - `room_exclusions`: select per membri, insert solo host (o via RPC `security definer`).
 
 ## 4. Realtime
 
-Nella pagina stanza sottoscrivere via **Supabase Realtime** (postgres_changes) le tabelle `rooms`, `room_members`, `room_exclusions` filtrate per `room_id`: tutti i membri vedono in tempo reale chi entra, la lista selezionata, l'estrazione in corso e la conferma finale.
+Nella pagina stanza sottoscrivere via **Supabase Realtime** (postgres_changes) le tabelle `rooms`, `room_members`, `room_exclusions` filtrate per `room_id`: tutti i membri vedono in tempo reale chi entra, **quale lista ha scelto ciascun membro** (update su `room_members.selected_list_id`), l'estrazione in corso e la conferma finale.
 
 ## 5. Struttura del progetto
 

@@ -13,7 +13,7 @@ Portare tutta l'app al livello "premium e accattivante" richiesto (riferimento F
 - [ ] **Transizioni di pagina** coerenti (framer-motion, fade+slide leggero) e stagger su tutte le griglie.
 - [ ] **Micro-interazioni**: hover/active su ogni elemento cliccabile, focus-visible per la tastiera, pulsazione discreta sul bottone "Estrai".
 - [ ] **Loading**: skeleton per ogni superficie che carica dati (mai spinner a pagina intera); `loading.tsx` per le route.
-- [ ] **Empty state** per: nessuna lista, lista vuota, nessuna stanza, stanza senza lista selezionata — ognuno con copy simpatico e CTA.
+- [ ] **Empty state** per: nessuna lista, lista vuota, nessuna stanza, stanza in cui nessun membro ha ancora scelto una lista — ognuno con copy simpatico e CTA.
 - [ ] **Error handling**: `error.tsx` e `not-found.tsx` a tema (404 = "Questo film non è in cartellone").
 - [ ] Coerenza: audit di spaziature, radius, colori — nessun grigio/blu default di Tailwind fuori dai token del design system.
 

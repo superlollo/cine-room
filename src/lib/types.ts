@@ -55,7 +55,6 @@ export interface Room {
   code: string;
   name: string;
   host_id: string;
-  selected_list_id: string | null;
   current_movie_id: number | null;
   status: RoomStatus;
   created_at: string;
@@ -64,6 +63,9 @@ export interface Room {
 export interface RoomMember {
   room_id: string;
   user_id: string;
+  // Ogni partecipante sceglie UNA sua lista; l'estrazione pesca dall'unione
+  // (dedup) delle liste scelte dai membri, al netto delle esclusioni stanza.
+  selected_list_id: string | null;
   joined_at: string;
 }
 
