@@ -104,6 +104,22 @@ export async function searchMovies(query: string): Promise<MovieSearchResult[]> 
     }));
 }
 
+/** Poster di film popolari, per la parete decorativa della landing. */
+export async function getPopularPosters(limit = 20): Promise<string[]> {
+  try {
+    const data = await tmdbFetch<{ results: TmdbSearchItem[] }>(
+      "/movie/popular",
+      { page: "1" },
+    );
+    return data.results
+      .map((r) => r.poster_path)
+      .filter((p): p is string => !!p)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 /** Dettagli completi di un film, mappati sulle colonne della tabella `movies`. */
 export async function getMovieDetails(
   id: number,

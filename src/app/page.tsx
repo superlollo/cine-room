@@ -1,28 +1,33 @@
 import Link from "next/link";
 import { Clapperboard, ListVideo, Users, Dices } from "lucide-react";
 import { Card } from "@/components/ui";
+import { PosterWall } from "@/components/landing/poster-wall";
+import { getPopularPosters } from "@/lib/tmdb.server";
 
 const steps = [
   {
     icon: ListVideo,
-    title: "Crea le tue liste",
+    title: "Crea le liste",
     text: "Cerca tra ~1M di film e salva quelli che vuoi vedere.",
   },
   {
     icon: Users,
-    title: "Apri una stanza",
+    title: "Apri una sala",
     text: "Condividi il link: amici e famiglia entrano in un tap.",
   },
   {
     icon: Dices,
-    title: "Estrai a caso",
-    text: "L'app pesca un film dalla lista scelta. Fine dello scrolling.",
+    title: "Lasciate decidere al caso",
+    text: "Ognuno sceglie una lista, l'app pesca un film per tutti.",
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const posters = await getPopularPosters(20);
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center px-6 py-20 text-center">
+      <PosterWall posters={posters} />
       {/* Logo + wordmark */}
       <div className="mb-8 flex items-center gap-3">
         <span className="bg-accent-gradient flex size-12 items-center justify-center rounded-2xl shadow-lg shadow-accent-red/30">

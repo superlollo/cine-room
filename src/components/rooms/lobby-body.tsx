@@ -146,7 +146,10 @@ export function LobbyBody({
               size="lg"
               disabled={pool.count === 0 || drawing}
               onClick={onDraw}
-              className="w-full"
+              className={cn(
+                "w-full",
+                pool.count > 0 && !drawing && "pulse-glow",
+              )}
             >
               {drawing ? <Spinner /> : <Clapperboard className="size-5" />}
               {drawing ? "Estraggo…" : "Estrai il film"}

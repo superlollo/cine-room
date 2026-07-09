@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Movie, RoomStatus } from "@/lib/types";
@@ -8,6 +9,25 @@ import { RoomInvite } from "@/components/rooms/room-invite";
 import { JoinRoom } from "@/components/rooms/join-room";
 import { RoomView } from "@/components/rooms/room-view";
 
+type RoomLookup = {
+  id: string;
+  code: string;
+  name: string;
+  host_id: string;
+  status: string;
+  current_movie_id: number | null;
+};
+
+// Anteprima social generica: il link viene condiviso su WhatsApp, ma non
+// esponiamo nome stanza/host nell'OG (solo branding + invito).
+export function generateMetadata(): Metadata {
+  return {
+    title: "Entra nella stanza · CineRoom",
+    description:
+      "Ti hanno invitato in una sala CineRoom: entra, scegli una tua lista e lasciate che l'app scelga il film per tutti.",
+  };
+}
+
 export default async function RoomPage({
   params,
 }: {
@@ -16,11 +36,12 @@ export default async function RoomPage({
   const { code } = await params;
   const supabase = await createClient();
 
-  const { data: room } = await supabase
-    .from("rooms")
-    .select("id, code, name, host_id, status, current_movie_id")
-    .eq("code", code.toUpperCase())
-    .maybeSingle();
+  // Lookup per codice via RPC SECURITY DEFINER: funziona anche per i non membri
+  // (serve conoscere il codice), senza esporre l'enumerazione delle stanze.
+  const { data: roomRows } = await supabase.rpc("get_room_by_code", {
+    p_code: code,
+  });
+  const room = (roomRows as RoomLookup[] | null)?.[0] ?? null;
 
   if (!room) notFound();
 
