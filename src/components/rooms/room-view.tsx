@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MoreVertical, RotateCcw, Sparkles, Trash2 } from "lucide-react";
@@ -43,7 +43,14 @@ export function RoomView({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [busyAction, setBusyAction] = useState<"confirm" | "redraw" | "newdraw" | "reset" | null>(null);
-  const busy = busyAction !== null;
+  const [isPending, startTransition] = useTransition();
+  // busy = true durante tutta l'operazione (supabase + refresh server)
+  const busy = busyAction !== null || isPending;
+
+  // Resetta busyAction solo quando il refresh è completato (isPending → false).
+  useEffect(() => {
+    if (!isPending) setBusyAction(null);
+  }, [isPending]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -73,7 +80,7 @@ export function RoomView({
       .eq("user_id", currentUserId);
     setSavingId(null);
     if (error) return toast.error("Errore nel salvare la scelta.");
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   // Estrae; se il pool è esaurito (null) porta lo stato a "drawing senza film".
@@ -95,7 +102,7 @@ export function RoomView({
         .eq("id", room.id);
     }
     setDrawing(false);
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function confirmMovie() {
@@ -112,7 +119,7 @@ export function RoomView({
       setBusyAction(null);
       return toast.error("Errore nella conferma.");
     }
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   // "Ripesca" NON brucia il film (niente room_exclusions): lo scarta solo per
@@ -146,7 +153,7 @@ export function RoomView({
         .update({ status: "drawing", current_movie_id: null })
         .eq("id", room.id);
     }
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function newDraw() {
@@ -156,7 +163,7 @@ export function RoomView({
       .from("rooms")
       .update({ status: "open", current_movie_id: null })
       .eq("id", room.id);
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function resetExclusions() {
@@ -169,7 +176,7 @@ export function RoomView({
       .eq("id", room.id);
     setMenuOpen(false);
     toast.success("Film già visti azzerati.");
-    router.refresh();
+    startTransition(() => router.refresh());
   }
 
   async function deleteRoom() {
