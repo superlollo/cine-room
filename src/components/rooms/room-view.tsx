@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MoreVertical, RotateCcw, Sparkles, Trash2 } from "lucide-react";
-import type { Movie, RoomStatus } from "@/lib/types";
+import type { Movie, MovieFeedback, RoomStatus } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Modal, Spinner, useToast } from "@/components/ui";
 import { posterUrl } from "@/lib/tmdb";
@@ -14,6 +14,7 @@ import { LobbyBody, type LobbyMember } from "./lobby-body";
 import { DrawReveal } from "./draw-reveal";
 import { MovieResultCard } from "./movie-result-card";
 import { RoomHistory } from "./room-history";
+import { MovieFeedbackPanel } from "./movie-feedback-panel";
 
 export function RoomView({
   room,
@@ -25,6 +26,7 @@ export function RoomView({
   mySelectedListId,
   currentMovie,
   history,
+  feedbackByMovie,
 }: {
   room: { id: string; code: string; name: string; status: RoomStatus };
   currentUserId: string;
@@ -35,6 +37,7 @@ export function RoomView({
   mySelectedListId: string | null;
   currentMovie: Movie | null;
   history: { movie: Movie; excludedAt: string }[];
+  feedbackByMovie: Record<number, MovieFeedback>;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -321,6 +324,22 @@ export function RoomView({
         >
           <Celebration />
           <MovieResultCard movie={currentMovie} label="🍿 Film della serata" />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <p className="mb-3 text-sm font-semibold text-muted">Com&apos;era?</p>
+            <MovieFeedbackPanel
+              roomId={room.id}
+              movieId={currentMovie.tmdb_id}
+              currentUserId={currentUserId}
+              feedback={
+                feedbackByMovie[currentMovie.tmdb_id] ?? {
+                  ratings: [],
+                  reactions: [],
+                  comments: [],
+                }
+              }
+              showComments={false}
+            />
+          </div>
           {isHost && (
             <Button onClick={newDraw} disabled={busy} variant="ghost">
               {busyAction === "newdraw" ? <Spinner /> : <Sparkles className="size-5" />}
@@ -330,7 +349,12 @@ export function RoomView({
         </motion.div>
       )}
 
-      <RoomHistory history={history} />
+      <RoomHistory
+        history={history}
+        roomId={room.id}
+        currentUserId={currentUserId}
+        feedbackByMovie={feedbackByMovie}
+      />
 
       <Modal
         open={deleteOpen}

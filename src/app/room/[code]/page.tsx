@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Movie, RoomStatus } from "@/lib/types";
+import type { Movie, MovieFeedback, RoomStatus } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { RoomShell } from "@/components/rooms/room-shell";
@@ -211,6 +211,49 @@ export default async function RoomPage({
     }))
     .filter((h) => !!h.movie);
 
+  // Feedback (voti/reazioni/commenti) sui film visti in questa stanza,
+  // raggruppati per movie_id per essere passati a cronologia e "Film della serata".
+  const feedbackByMovie: Record<number, MovieFeedback> = {};
+  function bucket(movieId: number): MovieFeedback {
+    return (feedbackByMovie[movieId] ??= { ratings: [], reactions: [], comments: [] });
+  }
+
+  const [{ data: ratingRows }, { data: reactionRows }, { data: commentRows }] =
+    await Promise.all([
+      supabase
+        .from("movie_ratings")
+        .select("room_id, movie_id, user_id, stars, updated_at")
+        .eq("room_id", room.id),
+      supabase
+        .from("movie_reactions")
+        .select("room_id, movie_id, user_id, emoji, created_at")
+        .eq("room_id", room.id),
+      supabase
+        .from("movie_comments")
+        .select("id, room_id, movie_id, user_id, body, created_at, profiles(username, avatar_url)")
+        .eq("room_id", room.id)
+        .order("created_at"),
+    ]);
+
+  for (const r of ratingRows ?? []) bucket(r.movie_id).ratings.push(r);
+  for (const r of reactionRows ?? []) bucket(r.movie_id).reactions.push(r);
+  for (const c of commentRows ?? []) {
+    const profile = c.profiles as unknown as {
+      username: string;
+      avatar_url: string | null;
+    } | null;
+    bucket(c.movie_id).comments.push({
+      id: c.id,
+      room_id: c.room_id,
+      movie_id: c.movie_id,
+      user_id: c.user_id,
+      username: profile?.username ?? "utente",
+      avatar_url: profile?.avatar_url ?? null,
+      body: c.body,
+      created_at: c.created_at,
+    });
+  }
+
   return (
     <ToastProvider>
       <RoomShell>
@@ -229,6 +272,7 @@ export default async function RoomPage({
           mySelectedListId={mySelectedListId}
           currentMovie={currentMovie}
           history={history}
+          feedbackByMovie={feedbackByMovie}
         />
       </RoomShell>
     </ToastProvider>

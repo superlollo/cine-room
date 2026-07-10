@@ -32,6 +32,21 @@ export function useRoomRealtime(roomId: string, onChange: () => void) {
         { event: "*", schema: "public", table: "room_exclusions", filter: `room_id=eq.${roomId}` },
         handler,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "movie_ratings", filter: `room_id=eq.${roomId}` },
+        handler,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "movie_reactions", filter: `room_id=eq.${roomId}` },
+        handler,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "movie_comments", filter: `room_id=eq.${roomId}` },
+        handler,
+      )
       .subscribe();
 
     return () => {

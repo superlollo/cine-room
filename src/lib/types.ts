@@ -74,3 +74,37 @@ export interface RoomExclusion {
   movie_id: number;
   excluded_at: string;
 }
+
+export interface MovieRating {
+  room_id: string;
+  movie_id: number;
+  user_id: string;
+  stars: number;
+  updated_at: string;
+}
+
+export interface MovieReaction {
+  room_id: string;
+  movie_id: number;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface MovieComment {
+  id: string;
+  room_id: string;
+  movie_id: number;
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  body: string;
+  created_at: string;
+}
+
+// Feedback (voti/reazioni/commenti) raggruppato per film, per una stanza.
+export interface MovieFeedback {
+  ratings: MovieRating[];
+  reactions: MovieReaction[];
+  comments: MovieComment[];
+}
