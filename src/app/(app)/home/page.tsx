@@ -61,16 +61,20 @@ export default async function HomePage() {
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   const memberCounts: Record<string, number> = {};
+  const swipingRooms = new Set<string>();
   if (rooms.length > 0) {
-    const { data: allMembers } = await supabase
-      .from("room_members")
-      .select("room_id")
-      .in(
-        "room_id",
-        rooms.map((r) => r.id),
-      );
+    const roomIds = rooms.map((r) => r.id);
+    const [{ data: allMembers }, { data: swipeRows }] = await Promise.all([
+      supabase.from("room_members").select("room_id").in("room_id", roomIds),
+      supabase
+        .from("swipe_sessions")
+        .select("room_id")
+        .in("room_id", roomIds)
+        .in("status", ["setup", "swiping"]),
+    ]);
     for (const row of allMembers ?? [])
       memberCounts[row.room_id] = (memberCounts[row.room_id] ?? 0) + 1;
+    for (const row of swipeRows ?? []) swipingRooms.add(row.room_id);
   }
 
   const hasRooms = rooms.length > 0;
@@ -141,6 +145,7 @@ export default async function HomePage() {
                 status={r.status}
                 members={memberCounts[r.id] ?? 1}
                 isHost={r.host_id === user.id}
+                swiping={swipingRooms.has(r.id)}
               />
             ))}
             <CreateRoomLauncher variant="card" />

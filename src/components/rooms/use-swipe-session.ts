@@ -29,11 +29,19 @@ export function useSwipeSession(
       );
 
     if (sessionId) {
-      channel = channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "swipe_players", filter: `session_id=eq.${sessionId}` },
-        handler,
-      );
+      channel = channel
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "swipe_players", filter: `session_id=eq.${sessionId}` },
+          handler,
+        )
+        // I voti alimentano gli avanzamenti ("Marco 15/38"): un evento per ogni
+        // card swipata da chiunque, incluse le proprie (idempotente: refresh).
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "swipe_votes", filter: `session_id=eq.${sessionId}` },
+          handler,
+        );
     }
 
     channel.subscribe();

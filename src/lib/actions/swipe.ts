@@ -129,16 +129,52 @@ export async function setSwipeReady(
   return startSwipeSession(sessionId);
 }
 
-/** Annulla la sessione: libera la stanza per una nuova (indice univoco parziale). */
+/**
+ * Chiude la sessione (solo il creatore). Da `setup` è un annullamento e la
+ * sessione sparisce subito; da `swiping` è un "termina senza match" e resta a
+ * schermo per tutti — è così che gli altri si sbloccano se un player sparisce.
+ */
 export async function cancelSwipeSession(
   sessionId: string,
 ): Promise<{ error: string } | void> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("swipe_sessions")
-    .update({ status: "ended" })
-    .eq("id", sessionId);
-  if (error) return { error: "Errore nell'annullare la sessione." };
+  const { data, error } = await supabase.rpc("end_swipe_session", {
+    p_session_id: sessionId,
+  });
+  if (error) return { error: "Errore nel chiudere la sessione." };
+  if (data === "forbidden") return { error: "Solo chi l'ha aperta può chiuderla." };
+}
+
+/**
+ * Chiude la schermata di esito (match o "nessun match") e libera la stanza per
+ * una nuova sessione. Lo può fare chiunque sia nella stanza.
+ */
+export async function archiveSwipeSession(
+  sessionId: string,
+): Promise<{ error: string } | void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("archive_swipe_session", {
+    p_session_id: sessionId,
+  });
+  if (error) return { error: "Errore nel chiudere la sessione." };
+}
+
+/**
+ * "Lo guardiamo stasera": il film matchato diventa il film della serata della
+ * stanza (esclusione + status `decided`), da lì in poi vale il flusso classico.
+ */
+export async function confirmSwipeMatch(
+  sessionId: string,
+): Promise<{ error: string } | void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("confirm_swipe_match", {
+    p_session_id: sessionId,
+  });
+  if (error) return { error: "Errore nella conferma." };
+  if (data === "forbidden") {
+    return { error: "Solo chi ha aperto la sessione può confermare." };
+  }
+  if (data !== "ok") return { error: "La sessione non è più in match." };
 }
 
 /**

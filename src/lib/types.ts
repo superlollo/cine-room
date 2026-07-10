@@ -121,6 +121,9 @@ export interface SwipeSession {
   include_suggestions: boolean;
   deck: number[];
   matched_movie_id: number | null;
+  // Una sessione conclusa resta a schermo (esito match / nessun match) finché
+  // non viene archiviata: è `archived`, non `status`, a liberare la stanza.
+  archived: boolean;
   created_at: string;
 }
 
@@ -133,6 +136,14 @@ export interface SwipePlayer {
   ready: boolean;
   finished: boolean;
   joined_at: string;
+}
+
+// Voto su una card del mazzo (Giorno 12). Il `liked` altrui non viene mai
+// mostrato in UI durante la sessione: serve ai contatori e ai quasi-match.
+export interface SwipeVote {
+  user_id: string;
+  movie_id: number;
+  liked: boolean;
 }
 
 // Consiglio TMDB per la stanza (Giorno 10): il film + il "seme" (film già

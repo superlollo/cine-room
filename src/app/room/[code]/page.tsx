@@ -7,6 +7,7 @@ import type {
   RoomStatus,
   SwipePlayer,
   SwipeSession,
+  SwipeVote,
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
@@ -260,16 +261,19 @@ export default async function RoomPage({
     });
   }
 
-  // Sessione swipe viva (Giorno 11): al massimo una per stanza (indice univoco).
+  // Sessione swipe non archiviata: al massimo una per stanza (indice univoco).
+  // Comprende quelle già concluse, la cui schermata di esito è ancora a schermo.
   const { data: sessionRow } = await supabase
     .from("swipe_sessions")
     .select("*")
     .eq("room_id", room.id)
-    .in("status", ["setup", "swiping"])
+    .eq("archived", false)
     .maybeSingle();
   const swipeSession = (sessionRow as SwipeSession | null) ?? null;
 
   let swipePlayers: SwipePlayer[] = [];
+  let swipeDeck: Movie[] = [];
+  let swipeVotes: SwipeVote[] = [];
   if (swipeSession) {
     const { data: playerRows } = await supabase
       .from("swipe_players")
@@ -293,6 +297,26 @@ export default async function RoomPage({
     });
   }
 
+  // Mazzo congelato + voti già espressi (Giorno 12). Il mazzo è vuoto in
+  // `setup`: si popola all'avvio. I voti sono la fonte di verità del punto in
+  // cui ognuno è arrivato, così un refresh riprende dalla card giusta.
+  if (swipeSession && swipeSession.deck.length > 0) {
+    const [{ data: deckRows }, { data: voteRows }] = await Promise.all([
+      supabase.from("movies").select("*").in("tmdb_id", swipeSession.deck),
+      supabase
+        .from("swipe_votes")
+        .select("user_id, movie_id, liked")
+        .eq("session_id", swipeSession.id),
+    ]);
+    const byId = new Map(
+      (deckRows ?? []).map((m) => [m.tmdb_id as number, m as Movie]),
+    );
+    swipeDeck = swipeSession.deck
+      .map((id) => byId.get(id))
+      .filter((m): m is Movie => !!m);
+    swipeVotes = (voteRows ?? []) as SwipeVote[];
+  }
+
   return (
     <ToastProvider>
       <RoomShell>
@@ -314,6 +338,8 @@ export default async function RoomPage({
           feedbackByMovie={feedbackByMovie}
           swipeSession={swipeSession}
           swipePlayers={swipePlayers}
+          swipeDeck={swipeDeck}
+          swipeVotes={swipeVotes}
         />
       </RoomShell>
     </ToastProvider>

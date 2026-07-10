@@ -10,6 +10,7 @@ import type {
   RoomStatus,
   SwipePlayer,
   SwipeSession,
+  SwipeVote,
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Modal, Spinner, useToast } from "@/components/ui";
@@ -37,6 +38,8 @@ export function RoomView({
   feedbackByMovie,
   swipeSession,
   swipePlayers,
+  swipeDeck,
+  swipeVotes,
 }: {
   room: { id: string; code: string; name: string; status: RoomStatus };
   currentUserId: string;
@@ -50,6 +53,8 @@ export function RoomView({
   feedbackByMovie: Record<number, MovieFeedback>;
   swipeSession: SwipeSession | null;
   swipePlayers: SwipePlayer[];
+  swipeDeck: Movie[];
+  swipeVotes: SwipeVote[];
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -206,6 +211,11 @@ export function RoomView({
     router.refresh();
   }
 
+  // Con lo swipe in corso il mazzo prende la scena: la lobby (liste, pool,
+  // bottone estrai) sparirebbe comunque sotto le card su mobile.
+  const swipeActive =
+    swipeSession?.status === "swiping" || swipeSession?.status === "matched";
+
   // Macchina a stati
   const isDrawing = room.status === "drawing" && !!currentMovie;
   const isExhausted = room.status === "drawing" && !currentMovie;
@@ -273,7 +283,7 @@ export function RoomView({
       </div>
 
       {/* Corpo per stato */}
-      {isOpen && (
+      {isOpen && !swipeActive && (
         <LobbyBody
           members={members}
           currentUserId={currentUserId}
@@ -369,6 +379,8 @@ export function RoomView({
           currentUserId={currentUserId}
           session={swipeSession}
           players={swipePlayers}
+          deck={swipeDeck}
+          votes={swipeVotes}
         />
       )}
 

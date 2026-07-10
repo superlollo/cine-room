@@ -21,12 +21,15 @@ export function RoomCard({
   status,
   members,
   isHost,
+  swiping = false,
 }: {
   code: string;
   name: string;
   status: RoomStatus;
   members: number;
   isHost: boolean;
+  /** C'è una sessione swipe aperta o in corso: si aspetta il tuo voto. */
+  swiping?: boolean;
 }) {
   return (
     <Link
@@ -38,10 +41,12 @@ export function RoomCard({
         <span
           className={cn(
             "shrink-0 rounded-full border px-2 py-0.5 text-xs",
-            STATUS_STYLE[status],
+            swiping
+              ? "border-accent-gold/40 bg-accent-gold/10 text-accent-gold"
+              : STATUS_STYLE[status],
           )}
         >
-          {STATUS_LABEL[status]}
+          {swiping ? "🔥 Swipe in corso" : STATUS_LABEL[status]}
         </span>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted">
