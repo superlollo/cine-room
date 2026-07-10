@@ -14,6 +14,7 @@ import { LobbyBody, type LobbyMember } from "./lobby-body";
 import { DrawReveal } from "./draw-reveal";
 import { MovieResultCard } from "./movie-result-card";
 import { RoomHistory } from "./room-history";
+import { RoomRecommendations } from "./room-recommendations";
 import { MovieFeedbackPanel } from "./movie-feedback-panel";
 
 export function RoomView({
@@ -354,6 +355,12 @@ export function RoomView({
         roomId={room.id}
         currentUserId={currentUserId}
         feedbackByMovie={feedbackByMovie}
+      />
+
+      <RoomRecommendations
+        roomId={room.id}
+        hasHistory={history.length > 0}
+        myLists={myLists}
       />
 
       <Modal

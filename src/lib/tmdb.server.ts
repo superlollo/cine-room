@@ -16,6 +16,7 @@ interface TmdbSearchItem {
   release_date?: string;
   poster_path: string | null;
   popularity?: number;
+  vote_average?: number;
 }
 
 interface TmdbGenre {
@@ -115,6 +116,30 @@ export async function getPopularPosters(limit = 20): Promise<string[]> {
       .map((r) => r.poster_path)
       .filter((p): p is string => !!p)
       .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/** Film raccomandati da TMDB a partire da un film "seme" (Giorno 10). */
+export async function getRecommendations(
+  seedId: number,
+): Promise<(MovieSearchResult & { vote_average: number | null })[]> {
+  try {
+    const data = await tmdbFetch<{ results: TmdbSearchItem[] }>(
+      `/movie/${seedId}/recommendations`,
+      { page: "1" },
+      60 * 60, // 1h: i "visti" della stanza cambiano raramente
+    );
+    return data.results
+      .filter((r) => r.poster_path)
+      .map((r) => ({
+        tmdb_id: r.id,
+        title: r.title,
+        release_year: yearOf(r.release_date),
+        poster_path: r.poster_path,
+        vote_average: r.vote_average ?? null,
+      }));
   } catch {
     return [];
   }
