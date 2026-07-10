@@ -1,24 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Sparkles, Star } from "lucide-react";
-import type { Movie, RoomRecommendation } from "@/lib/types";
+import type { Movie, MovieFeedback, RoomRecommendation } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { posterUrl } from "@/lib/tmdb";
 import { Modal, Skeleton, Spinner, useToast } from "@/components/ui";
 import { MovieDetailModal } from "@/components/movies";
 
+const MAX_SEEDS = 5;
+
 export function RoomRecommendations({
   roomId,
-  hasHistory,
+  history = [],
+  feedbackByMovie = {},
   myLists,
 }: {
   roomId: string;
-  hasHistory: boolean;
+  history: { movie: Movie; excludedAt: string }[];
+  feedbackByMovie: Record<number, MovieFeedback>;
   myLists: { id: string; name: string; emoji: string }[];
 }) {
   const supabase = createClient();
   const toast = useToast();
+  const hasHistory = history.length > 0;
+
+  // Firma dei semi effettivi (stessi ultimi 5 visti + media voti che usa la
+  // route): cambia sia con un nuovo film visto sia con un nuovo voto su un
+  // seme esistente, così l'effetto sotto rifetcha in entrambi i casi.
+  const seedsSignature = useMemo(() => {
+    return history
+      .slice(0, MAX_SEEDS)
+      .map((h) => {
+        const ratings = feedbackByMovie[h.movie.tmdb_id]?.ratings ?? [];
+        const avg =
+          ratings.length > 0
+            ? ratings.reduce((acc, r) => acc + r.stars, 0) / ratings.length
+            : null;
+        return `${h.movie.tmdb_id}:${avg ?? "x"}`;
+      })
+      .join(",");
+  }, [history, feedbackByMovie]);
 
   const [loading, setLoading] = useState(hasHistory);
   const [recs, setRecs] = useState<RoomRecommendation[]>([]);
@@ -45,7 +67,7 @@ export function RoomRecommendations({
     return () => {
       cancelled = true;
     };
-  }, [roomId, hasHistory]);
+  }, [roomId, hasHistory, seedsSignature]);
 
   if (!hasHistory) return null;
   if (!loading && recs.length === 0) return null;

@@ -359,7 +359,8 @@ export function RoomView({
 
       <RoomRecommendations
         roomId={room.id}
-        hasHistory={history.length > 0}
+        history={history}
+        feedbackByMovie={feedbackByMovie}
         myLists={myLists}
       />
 
