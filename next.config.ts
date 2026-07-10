@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(process.cwd()),
   },
+  experimental: {
+    // Di default Next 16 mette in cache le risposte fetch tra richieste
+    // separate in sviluppo (si svuota solo con reload/navigazione), anche
+    // per quelle 'no-store'. Le nostre letture Supabase (stato realtime di
+    // stanze/sessioni swipe) devono essere sempre fresche: es. il gate
+    // "tutti pronti" del Tinder-mode leggeva readiness stantia da cache e
+    // faceva partire la sessione in anticipo.
+    serverComponentsHmrCache: false,
+  },
   images: {
     remotePatterns: [
       {
