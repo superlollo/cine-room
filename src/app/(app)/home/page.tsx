@@ -6,7 +6,6 @@ import { ListCard } from "@/components/lists/list-card";
 import { NewListLauncher } from "@/components/lists/new-list-launcher";
 import { RoomCard } from "@/components/rooms/room-card";
 import { CreateRoomLauncher } from "@/components/rooms/create-room-launcher";
-import { JoinByCodeForm } from "@/components/rooms/join-by-code-form";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -128,7 +127,6 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="flex flex-wrap items-start gap-3">
-            <JoinByCodeForm />
             {hasRooms && <CreateRoomLauncher variant="cta" />}
           </div>
         </div>

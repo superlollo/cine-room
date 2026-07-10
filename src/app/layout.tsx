@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
+import { InstallPrompt } from "@/components/app/install-prompt";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,6 +40,18 @@ export const metadata: Metadata = {
     title: "CineRoom",
     description: "Decidete insieme che film guardare.",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    // Nome mostrato sotto l'icona in Home su iOS quando si fa "Aggiungi a
+    // Home": senza questo, Safari usa il <title> della pagina corrente
+    // (es. "Entra nella stanza" se si installa dal link di invito).
+    title: "CineRoom",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0f",
 };
 
 export default function RootLayout({
@@ -55,6 +68,7 @@ export default function RootLayout({
           className="spotlight pointer-events-none fixed inset-0 -z-10"
         />
         {children}
+        <InstallPrompt />
       </body>
     </html>
   );

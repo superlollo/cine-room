@@ -56,12 +56,12 @@ export function NewListLauncher({
       {variant === "card" ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex min-h-[13rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] text-muted transition hover:border-white/25 hover:bg-white/5 hover:text-foreground"
+          className="flex h-24 flex-col items-center justify-center gap-1.5 self-start rounded-2xl border border-dashed border-white/15 bg-white/[0.02] text-muted transition hover:border-white/25 hover:bg-white/5 hover:text-foreground"
         >
-          <span className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-            <Plus className="size-5" />
+          <span className="flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/5">
+            <Plus className="size-4" />
           </span>
-          <span className="text-sm font-medium">Nuova lista</span>
+          <span className="text-xs font-medium">Nuova lista</span>
         </button>
       ) : (
         <Button onClick={() => setOpen(true)} size="lg">
