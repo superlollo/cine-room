@@ -57,7 +57,12 @@ export async function createSwipeSession(
   return { sessionId: data.id };
 }
 
-/** Categorie e toggle suggerimenti: li tocca solo chi ha creato la sessione (RLS). */
+/**
+ * Categorie e toggle suggerimenti: li tocca chiunque abbia premuto "Partecipo"
+ * (non solo chi ha creato la sessione). La RLS su swipe_sessions resta
+ * solo-creatore per proteggere status/deck; qui passiamo dalla RPC
+ * `update_swipe_genres`, che verifica la riga in swipe_players lato server.
+ */
 export async function updateSwipeSetup(
   sessionId: string,
   genreIds: number[],
@@ -66,11 +71,11 @@ export async function updateSwipeSetup(
   if (!genreIds.every(isValidGenreId)) return { error: "Categoria non valida." };
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("swipe_sessions")
-    .update({ genre_ids: genreIds, include_suggestions: includeSuggestions })
-    .eq("id", sessionId)
-    .eq("status", "setup");
+  const { error } = await supabase.rpc("update_swipe_genres", {
+    p_session_id: sessionId,
+    p_genre_ids: genreIds,
+    p_include_suggestions: includeSuggestions,
+  });
   if (error) return { error: "Errore nel salvare le categorie." };
 }
 

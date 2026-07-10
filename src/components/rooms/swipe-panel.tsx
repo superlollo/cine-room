@@ -119,9 +119,9 @@ export function SwipePanel({
             🔥 Sessione swipe
           </h2>
           <p className="text-sm text-muted">
-            {isCreator
+            {me
               ? "Scegli le categorie: parte quando siete tutti pronti."
-              : "Chi ha aperto la sessione sceglie le categorie."}
+              : "I partecipanti scelgono le categorie: premi \"Partecipo\" per aiutare a decidere."}
           </p>
         </div>
         {isCreator && (
@@ -150,13 +150,13 @@ export function SwipePanel({
               <button
                 key={g.id}
                 onClick={() => toggleGenre(g.id)}
-                disabled={!isCreator || locked}
+                disabled={!me || locked}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-sm transition",
                   active
                     ? "border-accent-gold/70 bg-white/10 text-foreground"
                     : "border-white/10 bg-white/5 text-muted",
-                  isCreator && !locked
+                  me && !locked
                     ? "hover:bg-white/10"
                     : "cursor-default disabled:opacity-100",
                 )}
@@ -171,13 +171,13 @@ export function SwipePanel({
         <label
           className={cn(
             "mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm",
-            isCreator && !locked ? "cursor-pointer" : "opacity-80",
+            me && !locked ? "cursor-pointer" : "opacity-80",
           )}
         >
           <input
             type="checkbox"
             checked={session.include_suggestions}
-            disabled={!isCreator || locked}
+            disabled={!me || locked}
             onChange={(e) =>
               run(() =>
                 updateSwipeSetup(session.id, session.genre_ids, e.target.checked),
