@@ -145,6 +145,39 @@ export async function getRecommendations(
   }
 }
 
+/**
+ * Film popolari dei generi scelti, per i suggerimenti del mazzo swipe
+ * (Giorno 11). `with_genres` con `|` = OR: "romantico O fantascienza", che è
+ * come si leggono i chip delle categorie. Senza generi → popolari e basta.
+ * Ritorna solo gli id: i dettagli li prende `getMovieDetails` prima dell'upsert.
+ */
+export async function discoverByGenres(
+  genreIds: number[],
+  limit = 20,
+): Promise<number[]> {
+  const params: Record<string, string> = {
+    sort_by: "popularity.desc",
+    include_adult: "false",
+    "vote_count.gte": "50",
+    page: "1",
+  };
+  if (genreIds.length > 0) params.with_genres = genreIds.join("|");
+
+  try {
+    const data = await tmdbFetch<{ results: TmdbSearchItem[] }>(
+      "/discover/movie",
+      params,
+      60 * 60 * 6, // 6h: la popolarità si muove piano
+    );
+    return data.results
+      .filter((r) => r.poster_path)
+      .slice(0, limit)
+      .map((r) => r.id);
+  } catch {
+    return [];
+  }
+}
+
 /** Dettagli completi di un film, mappati sulle colonne della tabella `movies`. */
 export async function getMovieDetails(
   id: number,
