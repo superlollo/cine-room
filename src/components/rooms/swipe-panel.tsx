@@ -143,7 +143,7 @@ export function SwipePanel({
             {selected.size === 0 ? "(tutte)" : `(${selected.size})`}
           </span>
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {MOVIE_GENRES.map((g) => {
             const active = selected.has(g.id);
             return (
@@ -152,7 +152,7 @@ export function SwipePanel({
                 onClick={() => toggleGenre(g.id)}
                 disabled={!me || locked}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-sm transition",
+                  "rounded-full border px-2 py-1 text-xs transition",
                   active
                     ? "border-accent-gold/70 bg-white/10 text-foreground"
                     : "border-white/10 bg-white/5 text-muted",
