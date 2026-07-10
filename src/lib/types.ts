@@ -108,3 +108,11 @@ export interface MovieFeedback {
   reactions: MovieReaction[];
   comments: MovieComment[];
 }
+
+// Consiglio TMDB per la stanza (Giorno 10): il film + il "seme" (film già
+// visto in stanza) che lo ha prodotto, per la microcopy "Perché avete visto…".
+export interface RoomRecommendation {
+  movie: MovieSearchResult & { vote_average: number | null };
+  reasonTitle: string;
+  reasonStars: number | null;
+}
