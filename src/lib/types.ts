@@ -109,6 +109,32 @@ export interface MovieFeedback {
   comments: MovieComment[];
 }
 
+// Tinder-mode (Giorno 11): sessione di swipe dentro una stanza.
+export type SwipeStatus = "setup" | "swiping" | "matched" | "ended";
+
+export interface SwipeSession {
+  id: string;
+  room_id: string;
+  created_by: string;
+  status: SwipeStatus;
+  genre_ids: number[];
+  include_suggestions: boolean;
+  deck: number[];
+  matched_movie_id: number | null;
+  created_at: string;
+}
+
+// Riga di swipe_players arricchita col profilo, per la lobby.
+export interface SwipePlayer {
+  session_id: string;
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  ready: boolean;
+  finished: boolean;
+  joined_at: string;
+}
+
 // Consiglio TMDB per la stanza (Giorno 10): il film + il "seme" (film già
 // visto in stanza) che lo ha prodotto, per la microcopy "Perché avete visto…".
 export interface RoomRecommendation {

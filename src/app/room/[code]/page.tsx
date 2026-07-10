@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Movie, MovieFeedback, RoomStatus } from "@/lib/types";
+import type {
+  Movie,
+  MovieFeedback,
+  RoomStatus,
+  SwipePlayer,
+  SwipeSession,
+} from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { RoomShell } from "@/components/rooms/room-shell";
@@ -254,6 +260,39 @@ export default async function RoomPage({
     });
   }
 
+  // Sessione swipe viva (Giorno 11): al massimo una per stanza (indice univoco).
+  const { data: sessionRow } = await supabase
+    .from("swipe_sessions")
+    .select("*")
+    .eq("room_id", room.id)
+    .in("status", ["setup", "swiping"])
+    .maybeSingle();
+  const swipeSession = (sessionRow as SwipeSession | null) ?? null;
+
+  let swipePlayers: SwipePlayer[] = [];
+  if (swipeSession) {
+    const { data: playerRows } = await supabase
+      .from("swipe_players")
+      .select("session_id, user_id, ready, finished, joined_at, profiles(username, avatar_url)")
+      .eq("session_id", swipeSession.id)
+      .order("joined_at");
+    swipePlayers = (playerRows ?? []).map((p) => {
+      const profile = p.profiles as unknown as {
+        username: string;
+        avatar_url: string | null;
+      } | null;
+      return {
+        session_id: p.session_id,
+        user_id: p.user_id,
+        username: profile?.username ?? "utente",
+        avatar_url: profile?.avatar_url ?? null,
+        ready: p.ready,
+        finished: p.finished,
+        joined_at: p.joined_at,
+      };
+    });
+  }
+
   return (
     <ToastProvider>
       <RoomShell>
@@ -273,6 +312,8 @@ export default async function RoomPage({
           currentMovie={currentMovie}
           history={history}
           feedbackByMovie={feedbackByMovie}
+          swipeSession={swipeSession}
+          swipePlayers={swipePlayers}
         />
       </RoomShell>
     </ToastProvider>

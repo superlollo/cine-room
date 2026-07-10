@@ -4,7 +4,13 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MoreVertical, RotateCcw, Sparkles, Trash2 } from "lucide-react";
-import type { Movie, MovieFeedback, RoomStatus } from "@/lib/types";
+import type {
+  Movie,
+  MovieFeedback,
+  RoomStatus,
+  SwipePlayer,
+  SwipeSession,
+} from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Modal, Spinner, useToast } from "@/components/ui";
 import { posterUrl } from "@/lib/tmdb";
@@ -16,6 +22,7 @@ import { MovieResultCard } from "./movie-result-card";
 import { RoomHistory } from "./room-history";
 import { RoomRecommendations } from "./room-recommendations";
 import { MovieFeedbackPanel } from "./movie-feedback-panel";
+import { SwipePanel } from "./swipe-panel";
 
 export function RoomView({
   room,
@@ -28,6 +35,8 @@ export function RoomView({
   currentMovie,
   history,
   feedbackByMovie,
+  swipeSession,
+  swipePlayers,
 }: {
   room: { id: string; code: string; name: string; status: RoomStatus };
   currentUserId: string;
@@ -39,6 +48,8 @@ export function RoomView({
   currentMovie: Movie | null;
   history: { movie: Movie; excludedAt: string }[];
   feedbackByMovie: Record<number, MovieFeedback>;
+  swipeSession: SwipeSession | null;
+  swipePlayers: SwipePlayer[];
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -348,6 +359,17 @@ export function RoomView({
             </Button>
           )}
         </motion.div>
+      )}
+
+      {/* Alternativa all'estrazione: aperta a chiunque, non solo all'host.
+          Nascosta durante l'estrazione, che ha già la scena tutta per sé. */}
+      {(isOpen || isDecided) && (
+        <SwipePanel
+          roomId={room.id}
+          currentUserId={currentUserId}
+          session={swipeSession}
+          players={swipePlayers}
+        />
       )}
 
       <RoomHistory
