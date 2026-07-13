@@ -31,6 +31,7 @@ export function RoomView({
   isHost,
   members,
   pool,
+  poolCountUnfiltered,
   myLists,
   mySelectedListId,
   currentMovie,
@@ -41,11 +42,22 @@ export function RoomView({
   swipeDeck,
   swipeVotes,
 }: {
-  room: { id: string; code: string; name: string; status: RoomStatus };
+  room: {
+    id: string;
+    code: string;
+    name: string;
+    status: RoomStatus;
+    filterMaxRuntime: number | null;
+    filterGenreIds: number[];
+  };
   currentUserId: string;
   isHost: boolean;
   members: LobbyMember[];
   pool: { count: number; posters: string[] };
+  // Pool al netto delle sole esclusioni (senza i filtri): serve a distinguere,
+  // nella schermata "Avete visto tutto", pool esaurito per esclusioni (pool
+  // grezzo anch'esso 0) da pool vuoto per i filtri (grezzo > 0).
+  poolCountUnfiltered: number;
   myLists: { id: string; name: string; emoji: string; count: number }[];
   mySelectedListId: string | null;
   currentMovie: Movie | null;
@@ -62,7 +74,9 @@ export function RoomView({
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
-  const [busyAction, setBusyAction] = useState<"confirm" | "redraw" | "newdraw" | "reset" | null>(null);
+  const [busyAction, setBusyAction] = useState<
+    "confirm" | "redraw" | "newdraw" | "reset" | "widen" | null
+  >(null);
   const [isPending, startTransition] = useTransition();
   // busy = true durante tutta l'operazione (supabase + refresh server)
   const busy = busyAction !== null || isPending;
@@ -199,6 +213,21 @@ export function RoomView({
     startTransition(() => router.refresh());
   }
 
+  // Pool vuoto per colpa dei filtri, non delle esclusioni: qui "ricominciare"
+  // non serve, serve allargarli. Un tap li azzera entrambi.
+  async function widenFilters() {
+    setBusyAction("widen");
+    const { error } = await supabase
+      .from("rooms")
+      .update({ filter_max_runtime: null, filter_genre_ids: [], status: "open", current_movie_id: null })
+      .eq("id", room.id);
+    if (error) {
+      setBusyAction(null);
+      return toast.error("Errore nell'allargare i filtri.");
+    }
+    startTransition(() => router.refresh());
+  }
+
   async function deleteRoom() {
     setDeleting(true);
     const { error } = await supabase.from("rooms").delete().eq("id", room.id);
@@ -285,11 +314,15 @@ export function RoomView({
       {/* Corpo per stato */}
       {isOpen && !swipeActive && (
         <LobbyBody
+          roomId={room.id}
           members={members}
           currentUserId={currentUserId}
           myLists={myLists}
           mySelectedListId={mySelectedListId}
           pool={pool}
+          poolCountUnfiltered={poolCountUnfiltered}
+          filterMaxRuntime={room.filterMaxRuntime}
+          filterGenreIds={room.filterGenreIds}
           isHost={isHost}
           savingId={savingId}
           drawing={drawing}
@@ -312,28 +345,59 @@ export function RoomView({
 
       {isExhausted && (
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
-          <div className="text-4xl">🏆</div>
-          <h2 className="mt-2 font-display text-2xl font-bold">
-            Avete visto tutto!
-          </h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
-            Il cilindro è vuoto: tutti i film delle liste scelte sono già stati
-            estratti in questa stanza.
-          </p>
-          {isHost ? (
-            <div className="mt-5 flex flex-col items-center gap-2">
-              <Button onClick={resetExclusions} disabled={busy}>
-                {busy ? <Spinner /> : <RotateCcw className="size-5" />}
-                Ricomincia da capo
-              </Button>
-              <p className="text-xs text-muted">
-                Oppure tornate alla selezione e cambiate lista.
+          {poolCountUnfiltered === 0 ? (
+            <>
+              <div className="text-4xl">🏆</div>
+              <h2 className="mt-2 font-display text-2xl font-bold">
+                Avete visto tutto!
+              </h2>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Il cilindro è vuoto: tutti i film delle liste scelte sono già
+                stati estratti in questa stanza.
               </p>
-            </div>
+              {isHost ? (
+                <div className="mt-5 flex flex-col items-center gap-2">
+                  <Button onClick={resetExclusions} disabled={busy}>
+                    {busy ? <Spinner /> : <RotateCcw className="size-5" />}
+                    Ricomincia da capo
+                  </Button>
+                  <p className="text-xs text-muted">
+                    Oppure tornate alla selezione e cambiate lista.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-muted">
+                  L&apos;host può ricominciare da capo.
+                </p>
+              )}
+            </>
           ) : (
-            <p className="mt-4 text-sm text-muted">
-              L&apos;host può ricominciare da capo.
-            </p>
+            <>
+              <div className="text-4xl">🎚️</div>
+              <h2 className="mt-2 font-display text-2xl font-bold">
+                Nessun film rispetta i filtri
+              </h2>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Il cilindro ha film disponibili, ma i filtri attivi (durata o
+                generi) li escludono tutti.
+              </p>
+              {isHost ? (
+                <div className="mt-5 flex flex-col items-center gap-2">
+                  <Button onClick={widenFilters} disabled={busy}>
+                    {busy ? <Spinner /> : <RotateCcw className="size-5" />}
+                    Allarga i filtri
+                  </Button>
+                  <p className="text-xs text-muted">
+                    Oppure modificali dal pannello &laquo;Filtri
+                    estrazione&raquo;.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-muted">
+                  L&apos;host può allargare i filtri.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

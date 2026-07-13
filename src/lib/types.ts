@@ -57,6 +57,11 @@ export interface Room {
   host_id: string;
   current_movie_id: number | null;
   status: RoomStatus;
+  // Filtri estrazione (Giorno 15): impostati dall'host, valgono per il
+  // cilindro classico. null = nessun limite durata; array vuoto = nessun
+  // filtro genere.
+  filter_max_runtime: number | null;
+  filter_genre_ids: number[];
   created_at: string;
 }
 

@@ -5,6 +5,7 @@ import { Check, Clapperboard, Crown, Film } from "lucide-react";
 import { Button, Avatar, Spinner } from "@/components/ui";
 import { posterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { DrawFiltersPanel } from "./draw-filters-panel";
 
 export interface LobbyMember {
   userId: string;
@@ -15,28 +16,39 @@ export interface LobbyMember {
 }
 
 export function LobbyBody({
+  roomId,
   members,
   currentUserId,
   myLists,
   mySelectedListId,
   pool,
+  poolCountUnfiltered,
+  filterMaxRuntime,
+  filterGenreIds,
   isHost,
   savingId,
   drawing,
   onSelect,
   onDraw,
 }: {
+  roomId: string;
   members: LobbyMember[];
   currentUserId: string;
   myLists: { id: string; name: string; emoji: string; count: number }[];
   mySelectedListId: string | null;
   pool: { count: number; posters: string[] };
+  poolCountUnfiltered: number;
+  filterMaxRuntime: number | null;
+  filterGenreIds: number[];
   isHost: boolean;
   savingId: string | null;
   drawing: boolean;
   onSelect: (listId: string | null) => void;
   onDraw: () => void;
 }) {
+  // Pool vuoto per colpa dei filtri (non ci sono film che li rispettano) vs
+  // pool davvero esaurito/senza liste: messaggi diversi sotto il bottone.
+  const emptyByFilters = pool.count === 0 && poolCountUnfiltered > 0;
   return (
     <div className="space-y-8">
       {/* Membri */}
@@ -126,6 +138,14 @@ export function LobbyBody({
         )}
       </section>
 
+      {/* Filtri estrazione */}
+      <DrawFiltersPanel
+        roomId={roomId}
+        isHost={isHost}
+        maxRuntime={filterMaxRuntime}
+        genreIds={filterGenreIds}
+      />
+
       {/* Pool + estrazione */}
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex items-center gap-4">
@@ -161,7 +181,9 @@ export function LobbyBody({
           )}
           {isHost && pool.count === 0 && (
             <p className="mt-2 text-center text-xs text-muted">
-              Serve almeno una lista scelta con dei film.
+              {emptyByFilters
+                ? "Nessun film rispetta i filtri — allargateli."
+                : "Serve almeno una lista scelta con dei film."}
             </p>
           )}
         </div>

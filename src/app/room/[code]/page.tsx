@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type {
+  Genre,
   Movie,
   MovieFeedback,
   RoomStatus,
@@ -15,6 +16,7 @@ import { RoomShell } from "@/components/rooms/room-shell";
 import { RoomInvite } from "@/components/rooms/room-invite";
 import { JoinRoom } from "@/components/rooms/join-room";
 import { RoomView } from "@/components/rooms/room-view";
+import { passesDrawFilters } from "@/lib/draw-filters";
 
 type RoomLookup = {
   id: string;
@@ -23,6 +25,8 @@ type RoomLookup = {
   host_id: string;
   status: string;
   current_movie_id: number | null;
+  filter_max_runtime: number | null;
+  filter_genre_ids: number[];
 };
 
 // Anteprima social generica: il link viene condiviso su WhatsApp, ma non
@@ -261,7 +265,7 @@ export default async function RoomPage({
     selectedListIds.length > 0
       ? supabase
           .from("list_movies")
-          .select("movie_id, movies(poster_path)")
+          .select("movie_id, movies(poster_path, runtime, genres)")
           .in("list_id", selectedListIds)
       : Promise.resolve({ data: null }),
     myListIds.length > 0
@@ -287,22 +291,40 @@ export default async function RoomPage({
       : Promise.resolve({ data: null }),
   ]);
 
+  // poolCountUnfiltered = pool al netto delle sole esclusioni (come prima del
+  // Giorno 15); poolCount applica anche i filtri estrazione, con la stessa
+  // logica replicata nella RPC draw_movie (vedi lib/draw-filters.ts).
   let poolCount = 0;
+  let poolCountUnfiltered = 0;
   let poolPosters: string[] = [];
   if (selectedListIds.length > 0) {
     const exclSet = new Set((poolExclRows ?? []).map((e) => e.movie_id));
-    const uniq = new Map<number, string | null>();
+    const uniq = new Map<
+      number,
+      { poster: string | null; runtime: number | null; genres: Genre[] }
+    >();
     for (const row of poolListMoviesResult.data ?? []) {
       if (exclSet.has(row.movie_id)) continue;
       if (!uniq.has(row.movie_id)) {
-        const poster = (
-          row.movies as unknown as { poster_path: string | null } | null
-        )?.poster_path;
-        uniq.set(row.movie_id, poster ?? null);
+        const m = row.movies as unknown as {
+          poster_path: string | null;
+          runtime: number | null;
+          genres: Genre[] | null;
+        } | null;
+        uniq.set(row.movie_id, {
+          poster: m?.poster_path ?? null,
+          runtime: m?.runtime ?? null,
+          genres: m?.genres ?? [],
+        });
       }
     }
-    poolCount = uniq.size;
-    poolPosters = [...uniq.values()]
+    poolCountUnfiltered = uniq.size;
+    const filtered = [...uniq.values()].filter((m) =>
+      passesDrawFilters(m, room.filter_max_runtime, room.filter_genre_ids),
+    );
+    poolCount = filtered.length;
+    poolPosters = filtered
+      .map((m) => m.poster)
       .filter((p): p is string => !!p)
       .slice(0, 30);
   }
@@ -363,11 +385,14 @@ export default async function RoomPage({
             code: room.code,
             name: room.name,
             status: room.status as RoomStatus,
+            filterMaxRuntime: room.filter_max_runtime,
+            filterGenreIds: room.filter_genre_ids,
           }}
           currentUserId={user.id}
           isHost={room.host_id === user.id}
           members={members}
           pool={{ count: poolCount, posters: poolPosters }}
+          poolCountUnfiltered={poolCountUnfiltered}
           myLists={myLists}
           mySelectedListId={mySelectedListId}
           currentMovie={currentMovie}
