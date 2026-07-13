@@ -7,6 +7,7 @@ import { MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, Input, Spinner } from "@/components/ui";
 import { Field } from "@/components/auth/field";
+import { GoogleButton } from "@/components/auth/google-button";
 
 const USERNAME_RE = /^[a-zA-Z0-9]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -173,6 +174,14 @@ export default function RegisterPage() {
           {loading ? "Creazione…" : "Registrati"}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-white/10" />
+        oppure
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+
+      <GoogleButton />
 
       <p className="mt-5 text-center text-sm text-muted">
         Hai già un account?{" "}

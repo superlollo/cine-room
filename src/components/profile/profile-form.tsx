@@ -128,7 +128,13 @@ export function ProfileForm({
 
       const { error } = await supabase
         .from("profiles")
-        .update({ username, avatar_url: avatar })
+        .update({
+          username,
+          avatar_url: avatar,
+          // Un username scelto di persona non è più "generato": chiude il
+          // prompt del Giorno 14 anche se l'utente lo lascia invariato.
+          ...(username !== initialUsername ? { username_is_generated: false } : {}),
+        })
         .eq("id", userId);
 
       if (error) {
