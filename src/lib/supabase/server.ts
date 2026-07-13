@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -28,3 +29,14 @@ export async function createClient() {
     },
   );
 }
+
+// Dedupe di createClient()+getUser() all'interno della stessa richiesta
+// (layout + pagina condividono lo stesso render pass): niente rete in più
+// tra request diverse, `cache()` di React resetta ad ogni richiesta.
+export const getUserCached = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return { supabase, user };
+});

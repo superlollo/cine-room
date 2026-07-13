@@ -4,7 +4,7 @@ import { Clapperboard, ListVideo, Users, Dices } from "lucide-react";
 import { Card } from "@/components/ui";
 import { PosterWall } from "@/components/landing/poster-wall";
 import { getPopularPosters } from "@/lib/tmdb.server";
-import { createClient } from "@/lib/supabase/server";
+import { getUserCached } from "@/lib/supabase/server";
 
 const steps = [
   {
@@ -25,10 +25,7 @@ const steps = [
 ];
 
 export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getUserCached();
   if (user) redirect("/home");
 
   const posters = await getPopularPosters(20);

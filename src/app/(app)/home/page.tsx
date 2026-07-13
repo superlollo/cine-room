@@ -1,51 +1,28 @@
 import { redirect } from "next/navigation";
 import { Film } from "lucide-react";
 import type { RoomStatus } from "@/lib/types";
-import { createClient } from "@/lib/supabase/server";
+import { getUserCached } from "@/lib/supabase/server";
 import { ListCard } from "@/components/lists/list-card";
 import { NewListLauncher } from "@/components/lists/new-list-launcher";
 import { RoomCard } from "@/components/rooms/room-card";
 import { CreateRoomLauncher } from "@/components/rooms/create-room-launcher";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getUserCached();
   if (!user) redirect("/login");
 
-  const { data: lists } = await supabase
-    .from("lists")
-    .select("id, name, emoji")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false });
-
-  // Conteggio film + poster di anteprima per ogni lista (una query sola).
-  const ids = (lists ?? []).map((l) => l.id);
-  const preview: Record<string, { count: number; posters: string[] }> = {};
-  if (ids.length > 0) {
-    const { data: rows } = await supabase
-      .from("list_movies")
-      .select("list_id, added_at, movies(poster_path)")
-      .in("list_id", ids)
-      .order("added_at", { ascending: false });
-    for (const row of rows ?? []) {
-      const bucket = (preview[row.list_id] ??= { count: 0, posters: [] });
-      bucket.count += 1;
-      const poster = (
-        row.movies as unknown as { poster_path: string | null } | null
-      )?.poster_path;
-      if (poster && bucket.posters.length < 4) bucket.posters.push(poster);
-    }
-  }
-
-  const hasLists = (lists ?? []).length > 0;
-
-  // Stanze di cui l'utente è membro + conteggio membri.
-  const { data: memberships } = await supabase
-    .from("room_members")
-    .select("room_id, rooms(id, code, name, status, host_id, created_at)")
-    .eq("user_id", user.id);
+  // Batch 1: liste e stanze dell'utente non dipendono l'una dall'altra.
+  const [{ data: lists }, { data: memberships }] = await Promise.all([
+    supabase
+      .from("lists")
+      .select("id, name, emoji")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("room_members")
+      .select("room_id, rooms(id, code, name, status, host_id, created_at)")
+      .eq("user_id", user.id),
+  ]);
 
   type RoomRow = {
     id: string;
@@ -60,22 +37,50 @@ export default async function HomePage() {
     .filter((r): r is RoomRow => !!r)
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
+  const ids = (lists ?? []).map((l) => l.id);
+  const roomIds = rooms.map((r) => r.id);
+
+  // Batch 2: dipendono solo dai risultati del batch 1 (liste → list_movies,
+  // stanze → membri/swipe), quindi partono tutte insieme.
+  const [listMoviesResult, allMembersResult, swipeRowsResult] =
+    await Promise.all([
+      ids.length > 0
+        ? supabase
+            .from("list_movies")
+            .select("list_id, added_at, movies(poster_path)")
+            .in("list_id", ids)
+            .order("added_at", { ascending: false })
+        : Promise.resolve({ data: null }),
+      roomIds.length > 0
+        ? supabase.from("room_members").select("room_id").in("room_id", roomIds)
+        : Promise.resolve({ data: null }),
+      roomIds.length > 0
+        ? supabase
+            .from("swipe_sessions")
+            .select("room_id")
+            .in("room_id", roomIds)
+            .in("status", ["setup", "swiping"])
+        : Promise.resolve({ data: null }),
+    ]);
+
+  // Conteggio film + poster di anteprima per ogni lista.
+  const preview: Record<string, { count: number; posters: string[] }> = {};
+  for (const row of listMoviesResult.data ?? []) {
+    const bucket = (preview[row.list_id] ??= { count: 0, posters: [] });
+    bucket.count += 1;
+    const poster = (
+      row.movies as unknown as { poster_path: string | null } | null
+    )?.poster_path;
+    if (poster && bucket.posters.length < 4) bucket.posters.push(poster);
+  }
+
+  const hasLists = (lists ?? []).length > 0;
+
   const memberCounts: Record<string, number> = {};
   const swipingRooms = new Set<string>();
-  if (rooms.length > 0) {
-    const roomIds = rooms.map((r) => r.id);
-    const [{ data: allMembers }, { data: swipeRows }] = await Promise.all([
-      supabase.from("room_members").select("room_id").in("room_id", roomIds),
-      supabase
-        .from("swipe_sessions")
-        .select("room_id")
-        .in("room_id", roomIds)
-        .in("status", ["setup", "swiping"]),
-    ]);
-    for (const row of allMembers ?? [])
-      memberCounts[row.room_id] = (memberCounts[row.room_id] ?? 0) + 1;
-    for (const row of swipeRows ?? []) swipingRooms.add(row.room_id);
-  }
+  for (const row of allMembersResult.data ?? [])
+    memberCounts[row.room_id] = (memberCounts[row.room_id] ?? 0) + 1;
+  for (const row of swipeRowsResult.data ?? []) swipingRooms.add(row.room_id);
 
   const hasRooms = rooms.length > 0;
 

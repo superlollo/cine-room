@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUserCached } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/profile/profile-form";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getUserCached();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
