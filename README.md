@@ -8,7 +8,8 @@ Il piano completo è in [`piano/`](piano/), diviso per giorni:
 
 - [`00-OVERVIEW.md`](piano/00-OVERVIEW.md) — architettura, stack, schema DB, design system. **Da leggere in ogni sessione.**
 - `01`→`07` — un file per giorno di sviluppo, con task e criteri di accettazione. ✅ Fase 1 completata.
-- [`fase2/`](piano/fase2/) — piano fase 2 (giorni 8-12): feedback sui film visti, consigliati, Tinder-mode. Partire da [`fase2/00-OVERVIEW-FASE2.md`](piano/fase2/00-OVERVIEW-FASE2.md), che documenta anche lo stack reale (Next 16, Tailwind v4, modello liste per-partecipante).
+- [`fase2/`](piano/fase2/) — piano fase 2 (giorni 8-13): feedback sui film visti, consigliati, Tinder-mode, performance. Partire da [`fase2/00-OVERVIEW-FASE2.md`](piano/fase2/00-OVERVIEW-FASE2.md), che documenta anche lo stack reale (Next 16, Tailwind v4, modello liste per-partecipante). ✅ Completata.
+- [`fase3/`](piano/fase3/) — piano fase 3 (giorni 14-20): login Google, filtri all'estrazione, piattaforme streaming, statistiche, PWA+push, serie TV. Partire da [`fase3/00-OVERVIEW-FASE3.md`](piano/fase3/00-OVERVIEW-FASE3.md).
 
 ### Come usarlo con Claude Code
 

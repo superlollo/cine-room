@@ -6,11 +6,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, Input, Spinner } from "@/components/ui";
 import { Field } from "@/components/auth/field";
+import { GoogleButton } from "@/components/auth/google-button";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const redirectedFrom = searchParams.get("redirectedFrom");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,6 +85,14 @@ function LoginForm() {
           {loading ? "Accesso…" : "Accedi"}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-white/10" />
+        oppure
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+
+      <GoogleButton next={redirectedFrom ?? undefined} />
 
       <p className="mt-5 text-center text-sm text-muted">
         Non hai un account?{" "}
