@@ -22,7 +22,7 @@ export function DrawReveal({
   movie: Movie;
   reelPosters: string[];
   isHost: boolean;
-  busyAction: "confirm" | "redraw" | "newdraw" | "reset" | null;
+  busyAction: "confirm" | "redraw" | "newdraw" | "reset" | "widen" | null;
   onConfirm: () => void;
   onRedraw: () => void;
 }) {
