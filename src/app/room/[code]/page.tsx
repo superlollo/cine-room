@@ -9,6 +9,7 @@ import type {
   SwipePlayer,
   SwipeSession,
   SwipeVote,
+  WatchProviders,
 } from "@/lib/types";
 import { createClient, getUserCached } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
@@ -27,6 +28,7 @@ type RoomLookup = {
   current_movie_id: number | null;
   filter_max_runtime: number | null;
   filter_genre_ids: number[];
+  platform_ids: number[];
 };
 
 // Anteprima social generica: il link viene condiviso su WhatsApp, ma non
@@ -265,7 +267,7 @@ export default async function RoomPage({
     selectedListIds.length > 0
       ? supabase
           .from("list_movies")
-          .select("movie_id, movies(poster_path, runtime, genres)")
+          .select("movie_id, movies(poster_path, runtime, genres, watch_providers)")
           .in("list_id", selectedListIds)
       : Promise.resolve({ data: null }),
     myListIds.length > 0
@@ -301,7 +303,12 @@ export default async function RoomPage({
     const exclSet = new Set((poolExclRows ?? []).map((e) => e.movie_id));
     const uniq = new Map<
       number,
-      { poster: string | null; runtime: number | null; genres: Genre[] }
+      {
+        poster: string | null;
+        runtime: number | null;
+        genres: Genre[];
+        watch_providers: WatchProviders | null;
+      }
     >();
     for (const row of poolListMoviesResult.data ?? []) {
       if (exclSet.has(row.movie_id)) continue;
@@ -310,17 +317,24 @@ export default async function RoomPage({
           poster_path: string | null;
           runtime: number | null;
           genres: Genre[] | null;
+          watch_providers: WatchProviders | null;
         } | null;
         uniq.set(row.movie_id, {
           poster: m?.poster_path ?? null,
           runtime: m?.runtime ?? null,
           genres: m?.genres ?? [],
+          watch_providers: m?.watch_providers ?? null,
         });
       }
     }
     poolCountUnfiltered = uniq.size;
     const filtered = [...uniq.values()].filter((m) =>
-      passesDrawFilters(m, room.filter_max_runtime, room.filter_genre_ids),
+      passesDrawFilters(
+        m,
+        room.filter_max_runtime,
+        room.filter_genre_ids,
+        room.platform_ids,
+      ),
     );
     poolCount = filtered.length;
     poolPosters = filtered
@@ -387,6 +401,7 @@ export default async function RoomPage({
             status: room.status as RoomStatus,
             filterMaxRuntime: room.filter_max_runtime,
             filterGenreIds: room.filter_genre_ids,
+            filterPlatformIds: room.platform_ids,
           }}
           currentUserId={user.id}
           isHost={room.host_id === user.id}

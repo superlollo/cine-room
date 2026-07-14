@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import type { Movie } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
+import { WatchProviders } from "@/components/movies";
 
 function formatRuntime(min: number | null): string | null {
   if (!min || min <= 0) return null;
@@ -73,6 +74,9 @@ export function MovieResultCard({
               ))}
             </div>
           )}
+          <div className="mt-4">
+            <WatchProviders movie={movie} />
+          </div>
           {movie.overview && (
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-foreground/85">
               {movie.overview}

@@ -3,6 +3,7 @@
 import type { Movie, MovieFeedback } from "@/lib/types";
 import { Modal } from "@/components/ui";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
+import { WatchProviders } from "@/components/movies";
 import { MovieFeedbackPanel } from "./movie-feedback-panel";
 
 const dateFormatter = new Intl.DateTimeFormat("it-IT", {
@@ -67,6 +68,10 @@ export function MovieDetailModal({
             Visto il {dateFormatter.format(seenAt)} · {timeFormatter.format(seenAt)}
           </p>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <WatchProviders movie={movie} />
       </div>
 
       <div className="mt-5 border-t border-white/10 pt-5">

@@ -6,6 +6,7 @@ import { Check, X } from "lucide-react";
 import type { Movie, SwipePlayer } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
 import { Avatar, Button, Spinner } from "@/components/ui";
+import { WatchProviders } from "@/components/movies";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 const CONFETTI = ["🍿", "🎬", "✨", "🎉", "⭐", "🥂"];
@@ -78,6 +79,9 @@ export function MatchTakeover({
             {movie.release_year}
             {movie.genres?.length > 0 && ` · ${movie.genres.map((g) => g.name).join(", ")}`}
           </p>
+          <div className="mt-2 flex justify-center">
+            <WatchProviders movie={movie} />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">

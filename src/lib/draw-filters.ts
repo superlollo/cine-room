@@ -3,7 +3,7 @@
 // (room/[code]/page.tsx, che replica la logica della RPC draw_movie) e la UI
 // dei filtri (draw-filters-panel.tsx).
 
-import type { Genre } from "./types";
+import type { Genre, WatchProviders } from "./types";
 
 export const RUNTIME_FILTER_OPTIONS: { label: string; value: number | null }[] = [
   { label: "Nessun limite", value: null },
@@ -13,17 +13,30 @@ export const RUNTIME_FILTER_OPTIONS: { label: string; value: number | null }[] =
 ];
 
 // Un film senza runtime passa comunque il filtro durata (falso positivo
-// preferibile a nasconderlo). Array generi vuoto = nessun filtro genere.
+// preferibile a nasconderlo). Array generi/piattaforme vuoto = filtro spento.
+// Provider mai fetchati (watch_providers null, Giorno 16) passano comunque:
+// "dati non ancora noti" non è lo stesso di "non disponibile".
 export function passesDrawFilters(
-  movie: { runtime: number | null; genres: Genre[] },
+  movie: {
+    runtime: number | null;
+    genres: Genre[];
+    watch_providers?: WatchProviders | null;
+  },
   maxRuntime: number | null,
   genreIds: number[],
+  platformIds: number[] = [],
 ): boolean {
   if (maxRuntime != null && movie.runtime != null && movie.runtime > maxRuntime) {
     return false;
   }
   if (genreIds.length > 0 && !movie.genres.some((g) => genreIds.includes(g.id))) {
     return false;
+  }
+  if (platformIds.length > 0 && movie.watch_providers != null) {
+    const onFlatrate = movie.watch_providers.flatrate.some((p) =>
+      platformIds.includes(p.provider_id),
+    );
+    if (!onFlatrate) return false;
   }
   return true;
 }

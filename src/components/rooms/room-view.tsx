@@ -49,6 +49,7 @@ export function RoomView({
     status: RoomStatus;
     filterMaxRuntime: number | null;
     filterGenreIds: number[];
+    filterPlatformIds: number[];
   };
   currentUserId: string;
   isHost: boolean;
@@ -219,7 +220,13 @@ export function RoomView({
     setBusyAction("widen");
     const { error } = await supabase
       .from("rooms")
-      .update({ filter_max_runtime: null, filter_genre_ids: [], status: "open", current_movie_id: null })
+      .update({
+        filter_max_runtime: null,
+        filter_genre_ids: [],
+        platform_ids: [],
+        status: "open",
+        current_movie_id: null,
+      })
       .eq("id", room.id);
     if (error) {
       setBusyAction(null);
@@ -323,6 +330,7 @@ export function RoomView({
           poolCountUnfiltered={poolCountUnfiltered}
           filterMaxRuntime={room.filterMaxRuntime}
           filterGenreIds={room.filterGenreIds}
+          filterPlatformIds={room.filterPlatformIds}
           isHost={isHost}
           savingId={savingId}
           drawing={drawing}
@@ -378,8 +386,8 @@ export function RoomView({
                 Nessun film rispetta i filtri
               </h2>
               <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
-                Il cilindro ha film disponibili, ma i filtri attivi (durata o
-                generi) li escludono tutti.
+                Il cilindro ha film disponibili, ma i filtri attivi (durata,
+                generi o piattaforme) li escludono tutti.
               </p>
               {isHost ? (
                 <div className="mt-5 flex flex-col items-center gap-2">

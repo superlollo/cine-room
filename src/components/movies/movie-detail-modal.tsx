@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Star, X } from "lucide-react";
 import type { Movie } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
+import { WatchProviders } from "./watch-providers";
 
 function formatRuntime(min: number | null): string | null {
   if (!min || min <= 0) return null;
@@ -93,6 +94,7 @@ export function MovieDetailModal({
             </div>
 
             <div className="space-y-4 px-6 pb-6">
+              <WatchProviders movie={movie} />
               {movie.genres?.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {movie.genres.map((g) => (
