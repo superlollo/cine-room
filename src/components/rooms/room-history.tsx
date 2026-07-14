@@ -5,6 +5,7 @@ import { ChevronDown, History, MessageCircle, Star } from "lucide-react";
 import type { Movie, MovieFeedback } from "@/lib/types";
 import { posterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { WatchProviders } from "@/components/movies";
 import { MovieDetailModal } from "./movie-detail-modal";
 
 const dateFormatter = new Intl.DateTimeFormat("it-IT", {
@@ -107,6 +108,14 @@ export function RoomHistory({
                         {fb.comments.length}
                       </span>
                     )}
+                  </div>
+                  <div className="mt-1.5">
+                    <WatchProviders
+                      movie={h.movie}
+                      size="sm"
+                      autoRefresh={false}
+                      interactive={false}
+                    />
                   </div>
                 </div>
               </button>

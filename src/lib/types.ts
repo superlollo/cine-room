@@ -14,6 +14,21 @@ export interface Genre {
   name: string;
 }
 
+// Un provider su cui il film è disponibile (Giorno 16), regione IT.
+export interface WatchProviderItem {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+}
+
+// Solo la regione IT già estratta dalla risposta TMDB, non l'intero payload
+// (che copre tutte le regioni).
+export interface WatchProviders {
+  flatrate: WatchProviderItem[];
+  rent: WatchProviderItem[];
+  buy: WatchProviderItem[];
+}
+
 export interface Movie {
   tmdb_id: number;
   title: string;
@@ -25,6 +40,10 @@ export interface Movie {
   runtime: number | null;
   genres: Genre[];
   vote_average: number | null;
+  // "Dove guardarlo" (Giorno 16): null = provider mai fetchati (diverso da
+  // "non disponibile in streaming"). Refresh oltre 7 giorni da questa data.
+  watch_providers: WatchProviders | null;
+  providers_fetched_at: string | null;
   created_at: string;
 }
 
@@ -62,6 +81,9 @@ export interface Room {
   // filtro genere.
   filter_max_runtime: number | null;
   filter_genre_ids: number[];
+  // Piattaforme possedute dalla stanza (Giorno 16): provider_id TMDB. Array
+  // vuoto = filtro piattaforme spento.
+  platform_ids: number[];
   created_at: string;
 }
 

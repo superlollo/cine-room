@@ -1,5 +1,5 @@
 import "server-only";
-import type { Movie, MovieSearchResult } from "./types";
+import type { Movie, MovieSearchResult, WatchProviderItem, WatchProviders } from "./types";
 
 // Chiamate all'API TMDB. La chiave resta SOLO qui (server): mai nel client.
 // TMDB_API_KEY può essere un Read Access Token v4 (JWT → header Bearer)
@@ -24,6 +24,18 @@ interface TmdbGenre {
   name: string;
 }
 
+interface TmdbWatchProviderEntry {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+}
+
+interface TmdbWatchProviderRegion {
+  flatrate?: TmdbWatchProviderEntry[];
+  rent?: TmdbWatchProviderEntry[];
+  buy?: TmdbWatchProviderEntry[];
+}
+
 interface TmdbMovieDetails {
   id: number;
   title: string;
@@ -35,6 +47,17 @@ interface TmdbMovieDetails {
   runtime?: number | null;
   genres?: TmdbGenre[];
   vote_average?: number;
+  // Presente solo grazie a `append_to_response=watch/providers` (Giorno 16):
+  // una chiamata sola, niente fetch separato per i provider.
+  "watch/providers"?: { results?: Record<string, TmdbWatchProviderRegion> };
+}
+
+function mapProviders(list?: TmdbWatchProviderEntry[]): WatchProviderItem[] {
+  return (list ?? []).map((p) => ({
+    provider_id: p.provider_id,
+    provider_name: p.provider_name,
+    logo_path: p.logo_path ?? null,
+  }));
 }
 
 function yearOf(date?: string | null): number | null {
@@ -178,11 +201,23 @@ export async function discoverByGenres(
   }
 }
 
-/** Dettagli completi di un film, mappati sulle colonne della tabella `movies`. */
+/**
+ * Dettagli completi di un film, mappati sulle colonne della tabella `movies`.
+ * Include i provider IT (Giorno 16) nella stessa chiamata via
+ * `append_to_response`: niente fetch separato per "dove guardarlo".
+ */
 export async function getMovieDetails(
   id: number,
 ): Promise<Omit<Movie, "created_at">> {
-  const d = await tmdbFetch<TmdbMovieDetails>(`/movie/${id}`);
+  const d = await tmdbFetch<TmdbMovieDetails>(`/movie/${id}`, {
+    append_to_response: "watch/providers",
+  });
+  const it = d["watch/providers"]?.results?.IT;
+  const watch_providers: WatchProviders = {
+    flatrate: mapProviders(it?.flatrate),
+    rent: mapProviders(it?.rent),
+    buy: mapProviders(it?.buy),
+  };
   return {
     tmdb_id: d.id,
     title: d.title,
@@ -194,5 +229,7 @@ export async function getMovieDetails(
     runtime: d.runtime ?? null,
     genres: (d.genres ?? []).map((g) => ({ id: g.id, name: g.name })),
     vote_average: d.vote_average ?? null,
+    watch_providers,
+    providers_fetched_at: new Date().toISOString(),
   };
 }

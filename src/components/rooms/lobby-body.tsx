@@ -25,6 +25,7 @@ export function LobbyBody({
   poolCountUnfiltered,
   filterMaxRuntime,
   filterGenreIds,
+  filterPlatformIds,
   isHost,
   savingId,
   drawing,
@@ -40,6 +41,7 @@ export function LobbyBody({
   poolCountUnfiltered: number;
   filterMaxRuntime: number | null;
   filterGenreIds: number[];
+  filterPlatformIds: number[];
   isHost: boolean;
   savingId: string | null;
   drawing: boolean;
@@ -144,6 +146,7 @@ export function LobbyBody({
         isHost={isHost}
         maxRuntime={filterMaxRuntime}
         genreIds={filterGenreIds}
+        platformIds={filterPlatformIds}
       />
 
       {/* Pool + estrazione */}
