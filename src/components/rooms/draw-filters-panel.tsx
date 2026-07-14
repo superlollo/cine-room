@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { MOVIE_GENRES } from "@/lib/genres";
 import { RUNTIME_FILTER_OPTIONS } from "@/lib/draw-filters";
@@ -81,6 +81,12 @@ export function DrawFiltersPanel({
     }
   }
 
+  // Azzera tutti i filtri in un colpo solo, senza deselezionare a mano ogni
+  // durata/genere/piattaforma attivi.
+  async function resetFilters() {
+    await update({ filter_max_runtime: null, filter_genre_ids: [], platform_ids: [] });
+  }
+
   const disabled = !isHost || saving;
 
   return (
@@ -113,6 +119,16 @@ export function DrawFiltersPanel({
         <div className="mt-4 space-y-4">
           {!isHost && (
             <p className="text-xs text-muted">Solo l&apos;host può modificare i filtri.</p>
+          )}
+          {isHost && active && (
+            <button
+              onClick={resetFilters}
+              disabled={saving}
+              className="flex items-center gap-1.5 text-xs text-muted transition hover:text-foreground disabled:cursor-default disabled:opacity-50"
+            >
+              <RotateCcw className="size-3.5" />
+              Azzera filtri
+            </button>
           )}
 
           <div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MoreVertical, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { BarChart3, MoreVertical, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import type {
   Movie,
   MovieFeedback,
@@ -272,6 +273,15 @@ export function RoomView({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {history.length > 0 && (
+            <Link
+              href={`/room/${room.code}/stats`}
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-muted transition hover:bg-white/10 hover:text-foreground"
+            >
+              <BarChart3 className="size-4" />
+              <span className="hidden sm:inline">I vostri numeri</span>
+            </Link>
+          )}
           <CopyInviteButton code={room.code} roomName={room.name} />
           {isHost && (
             <div className="relative">
